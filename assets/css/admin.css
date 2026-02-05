@@ -449,6 +449,304 @@
 	color: #646970;
 }
 
+/* Sub-tabs */
+.jharudar-subtabs {
+	display: flex;
+	gap: 0;
+	margin-bottom: 20px;
+	border-bottom: 1px solid #c3c4c7;
+}
+
+.jharudar-subtab {
+	padding: 10px 15px;
+	text-decoration: none;
+	color: #646970;
+	border-bottom: 2px solid transparent;
+	margin-bottom: -1px;
+}
+
+.jharudar-subtab:hover {
+	color: #2271b1;
+}
+
+.jharudar-subtab.active {
+	color: #1d2327;
+	border-bottom-color: #2271b1;
+	font-weight: 600;
+}
+
+/* Module Content */
+.jharudar-module-content {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	padding: 20px;
+}
+
+.jharudar-module-header {
+	margin-bottom: 20px;
+}
+
+.jharudar-module-header h3 {
+	margin: 0 0 5px;
+}
+
+.jharudar-module-header .description {
+	margin: 0;
+	color: #646970;
+}
+
+/* Quick Stats */
+.jharudar-quick-stats {
+	display: flex;
+	gap: 15px;
+	margin-bottom: 20px;
+}
+
+.jharudar-quick-stat {
+	background: #f6f7f7;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	padding: 15px 20px;
+	text-align: center;
+	min-width: 120px;
+}
+
+.jharudar-quick-stat .stat-number {
+	display: block;
+	font-size: 24px;
+	font-weight: 600;
+	color: #1d2327;
+	line-height: 1.2;
+}
+
+.jharudar-quick-stat .stat-label {
+	display: block;
+	font-size: 12px;
+	color: #646970;
+	margin-top: 5px;
+}
+
+.jharudar-quick-stat.jharudar-warning-stat .stat-number {
+	color: #dba617;
+}
+
+.jharudar-quick-stat.jharudar-success-stat .stat-number {
+	color: #00a32a;
+}
+
+.jharudar-quick-stat.jharudar-danger-stat .stat-number {
+	color: #d63638;
+}
+
+/* Status badges */
+.jharudar-status {
+	display: inline-block;
+	padding: 2px 8px;
+	border-radius: 3px;
+	font-size: 12px;
+	font-weight: 500;
+}
+
+.jharudar-status-publish,
+.jharudar-status-completed,
+.jharudar-status-processing {
+	background: #c6e1c6;
+	color: #5b841b;
+}
+
+.jharudar-status-draft,
+.jharudar-status-pending {
+	background: #f0f0f1;
+	color: #646970;
+}
+
+.jharudar-status-private {
+	background: #e5e5e5;
+	color: #1d2327;
+}
+
+.jharudar-status-trash,
+.jharudar-status-failed,
+.jharudar-status-cancelled {
+	background: #eba3a3;
+	color: #761919;
+}
+
+.jharudar-status-on-hold {
+	background: #f8dda7;
+	color: #94660c;
+}
+
+.jharudar-status-refunded {
+	background: #e5e5e5;
+	color: #646970;
+}
+
+/* Loading state */
+.jharudar-loading {
+	text-align: center;
+	padding: 40px;
+	color: #646970;
+}
+
+.jharudar-loading .spinner {
+	float: none;
+	margin: 0 10px 0 0;
+}
+
+/* Empty state */
+.jharudar-empty-state {
+	text-align: center;
+	padding: 60px 20px;
+	color: #646970;
+}
+
+.jharudar-empty-state .dashicons {
+	font-size: 48px;
+	width: 48px;
+	height: 48px;
+	color: #c3c4c7;
+	margin-bottom: 15px;
+}
+
+.jharudar-empty-state p {
+	margin: 0;
+	font-size: 14px;
+}
+
+/* Results table */
+.jharudar-results-container .wp-list-table {
+	margin: 0;
+}
+
+.jharudar-results-container .wp-list-table th,
+.jharudar-results-container .wp-list-table td {
+	vertical-align: middle;
+}
+
+.jharudar-results-container .check-column {
+	width: 40px;
+	padding: 10px;
+}
+
+/* Checkbox label */
+.jharudar-checkbox-label {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	cursor: pointer;
+}
+
+/* Button with icon */
+.jharudar-actions-right .button .dashicons {
+	font-size: 16px;
+	width: 16px;
+	height: 16px;
+	vertical-align: middle;
+	margin-right: 3px;
+	margin-top: -2px;
+}
+
+/* Danger button */
+.button-danger {
+	background: #d63638 !important;
+	border-color: #d63638 !important;
+	color: #fff !important;
+}
+
+.button-danger:hover {
+	background: #b32d2e !important;
+	border-color: #b32d2e !important;
+}
+
+.button-danger:disabled {
+	background: #f0f0f1 !important;
+	border-color: #c3c4c7 !important;
+	color: #a7aaad !important;
+}
+
+/* Images grid */
+.jharudar-images-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+	gap: 15px;
+}
+
+.jharudar-image-item {
+	position: relative;
+	background: #f6f7f7;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	padding: 10px;
+	text-align: center;
+}
+
+.jharudar-image-item input[type="checkbox"] {
+	position: absolute;
+	top: 10px;
+	left: 10px;
+}
+
+.jharudar-image-item img {
+	max-width: 100%;
+	height: 100px;
+	object-fit: cover;
+	border-radius: 4px;
+	margin-bottom: 10px;
+}
+
+.jharudar-image-info {
+	font-size: 12px;
+}
+
+.jharudar-image-title {
+	display: block;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	color: #1d2327;
+}
+
+.jharudar-image-size {
+	display: block;
+	color: #646970;
+}
+
+/* Pagination */
+.jharudar-pagination {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-top: 20px;
+	padding-top: 15px;
+	border-top: 1px solid #c3c4c7;
+}
+
+.jharudar-showing {
+	color: #646970;
+	font-size: 13px;
+}
+
+/* Modal enhancements */
+.jharudar-modal-options {
+	margin-bottom: 15px;
+	padding: 10px;
+	background: #f6f7f7;
+	border-radius: 4px;
+}
+
+.jharudar-modal-input label {
+	display: block;
+	margin-bottom: 5px;
+	font-weight: 600;
+}
+
+/* Notice inline */
+.notice.inline {
+	margin: 0 0 20px;
+}
+
 /* Responsive */
 @media screen and (max-width: 1200px) {
 	.jharudar-module-page {
@@ -495,5 +793,18 @@
 	.jharudar-actions-right {
 		width: 100%;
 		justify-content: flex-start;
+		flex-wrap: wrap;
+	}
+
+	.jharudar-quick-stats {
+		flex-direction: column;
+	}
+
+	.jharudar-subtabs {
+		flex-wrap: wrap;
+	}
+
+	.jharudar-images-grid {
+		grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
 	}
 }

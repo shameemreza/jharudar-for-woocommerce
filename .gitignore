@@ -32,3 +32,9 @@ package-lock.json
 # Local development
 .env
 .env.local
+
+# Project documentation (not for public repo)
+PRD-*.md
+tasks.md
+PLANNING.md
+PRD-Jharudar-for-WooCommerce.md

@@ -35,6 +35,27 @@ final class Jharudar {
 	public $admin = null;
 
 	/**
+	 * Products module instance.
+	 *
+	 * @var Jharudar_Products|null
+	 */
+	public $products = null;
+
+	/**
+	 * Orders module instance.
+	 *
+	 * @var Jharudar_Orders|null
+	 */
+	public $orders = null;
+
+	/**
+	 * Customers module instance.
+	 *
+	 * @var Jharudar_Customers|null
+	 */
+	public $customers = null;
+
+	/**
 	 * Get the single instance of the class.
 	 *
 	 * @since 0.0.1
@@ -96,6 +117,9 @@ final class Jharudar {
 	 * @return void
 	 */
 	public function init() {
+		// Initialize modules.
+		$this->init_modules();
+
 		// Initialize admin.
 		if ( is_admin() ) {
 			$this->admin = new Jharudar_Admin();
@@ -107,6 +131,26 @@ final class Jharudar {
 		 * @since 0.0.1
 		 */
 		do_action( 'jharudar_init' );
+	}
+
+	/**
+	 * Initialize modules.
+	 *
+	 * @since 0.0.1
+	 * @return void
+	 */
+	private function init_modules() {
+		// Core modules.
+		$this->products  = new Jharudar_Products();
+		$this->orders    = new Jharudar_Orders();
+		$this->customers = new Jharudar_Customers();
+
+		/**
+		 * Fires after Jharudar modules have been initialized.
+		 *
+		 * @since 0.0.1
+		 */
+		do_action( 'jharudar_modules_init' );
 	}
 
 	/**
