@@ -56,6 +56,13 @@ final class Jharudar {
 	public $customers = null;
 
 	/**
+	 * Automation instance.
+	 *
+	 * @var Jharudar_Automation|null
+	 */
+	public $automation = null;
+
+	/**
 	 * Get the single instance of the class.
 	 *
 	 * @since 0.0.1
@@ -144,6 +151,9 @@ final class Jharudar {
 		$this->products  = new Jharudar_Products();
 		$this->orders    = new Jharudar_Orders();
 		$this->customers = new Jharudar_Customers();
+
+		// Automation hooks.
+		$this->automation = new Jharudar_Automation();
 
 		/**
 		 * Fires after Jharudar modules have been initialized.

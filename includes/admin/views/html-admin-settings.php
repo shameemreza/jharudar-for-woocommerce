@@ -32,14 +32,17 @@ function jharudar_render_settings_page() {
 
 		// Sanitize and save settings.
 		$jharudar_settings = array(
-			'delete_data_on_uninstall' => isset( $_POST['delete_data_on_uninstall'] ),
-			'enable_activity_log'      => isset( $_POST['enable_activity_log'] ),
-			'log_retention_days'       => absint( $_POST['log_retention_days'] ?? 30 ),
-			'batch_size'               => absint( $_POST['batch_size'] ?? 50 ),
-			'require_confirmation'     => isset( $_POST['require_confirmation'] ),
-			'require_export'           => isset( $_POST['require_export'] ),
-			'email_notifications'      => isset( $_POST['email_notifications'] ),
-			'notification_email'       => isset( $_POST['notification_email'] ) ? sanitize_email( wp_unslash( $_POST['notification_email'] ) ) : '',
+			'delete_data_on_uninstall'    => isset( $_POST['delete_data_on_uninstall'] ),
+			'enable_activity_log'         => isset( $_POST['enable_activity_log'] ),
+			'log_retention_days'          => absint( $_POST['log_retention_days'] ?? 30 ),
+			'batch_size'                  => absint( $_POST['batch_size'] ?? 50 ),
+			'require_confirmation'        => isset( $_POST['require_confirmation'] ),
+			'require_export'              => isset( $_POST['require_export'] ),
+			'email_notifications'         => isset( $_POST['email_notifications'] ),
+			'notification_email'          => isset( $_POST['notification_email'] ) ? sanitize_email( wp_unslash( $_POST['notification_email'] ) ) : '',
+			'auto_delete_zero_stock'      => isset( $_POST['auto_delete_zero_stock'] ),
+			'auto_delete_product_images'  => isset( $_POST['auto_delete_product_images'] ),
+			'skip_shared_images'          => isset( $_POST['skip_shared_images'] ),
 		);
 
 		// Validate batch size.
@@ -72,6 +75,11 @@ function jharudar_render_settings_page() {
 	$jharudar_export_required = isset( $jharudar_settings['require_export'] ) ? $jharudar_settings['require_export'] : false;
 	$jharudar_email_notify    = isset( $jharudar_settings['email_notifications'] ) ? $jharudar_settings['email_notifications'] : false;
 	$jharudar_notify_email    = isset( $jharudar_settings['notification_email'] ) ? $jharudar_settings['notification_email'] : get_option( 'admin_email' );
+
+	// Automation settings.
+	$jharudar_auto_delete_zero_stock     = isset( $jharudar_settings['auto_delete_zero_stock'] ) ? $jharudar_settings['auto_delete_zero_stock'] : false;
+	$jharudar_auto_delete_product_images = isset( $jharudar_settings['auto_delete_product_images'] ) ? $jharudar_settings['auto_delete_product_images'] : false;
+	$jharudar_skip_shared_images         = isset( $jharudar_settings['skip_shared_images'] ) ? $jharudar_settings['skip_shared_images'] : true;
 	?>
 
 	<div class="jharudar-settings">
@@ -168,6 +176,57 @@ function jharudar_render_settings_page() {
 							<input type="email" id="notification_email" name="notification_email" value="<?php echo esc_attr( $jharudar_notify_email ); ?>" class="regular-text" />
 							<p class="description">
 								<?php esc_html_e( 'Email address to receive cleanup notifications.', 'jharudar-for-woocommerce' ); ?>
+							</p>
+						</td>
+					</tr>
+				</table>
+			</div>
+
+			<div class="jharudar-settings-section">
+				<h3><?php esc_html_e( 'Cleanup Automation', 'jharudar-for-woocommerce' ); ?></h3>
+				<p class="description" style="margin-bottom: 15px;">
+					<?php esc_html_e( 'These settings enable automatic cleanup actions. Compatible with managed hosting environments (WordPress.com, WP Engine, Kinsta, etc.).', 'jharudar-for-woocommerce' ); ?>
+				</p>
+				<table class="form-table">
+					<tr>
+						<th scope="row">
+							<label for="auto_delete_zero_stock"><?php esc_html_e( 'Auto-Delete Zero Stock Products', 'jharudar-for-woocommerce' ); ?></label>
+						</th>
+						<td>
+							<label for="auto_delete_zero_stock">
+								<input type="checkbox" id="auto_delete_zero_stock" name="auto_delete_zero_stock" value="1" <?php checked( $jharudar_auto_delete_zero_stock ); ?> />
+								<?php esc_html_e( 'Automatically delete products when stock reaches zero (after order completion).', 'jharudar-for-woocommerce' ); ?>
+							</label>
+							<p class="description">
+								<?php esc_html_e( 'Useful for stores selling unique or one-time items. Products are only deleted after the order is marked as completed.', 'jharudar-for-woocommerce' ); ?>
+							</p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row">
+							<label for="auto_delete_product_images"><?php esc_html_e( 'Auto-Delete Product Images', 'jharudar-for-woocommerce' ); ?></label>
+						</th>
+						<td>
+							<label for="auto_delete_product_images">
+								<input type="checkbox" id="auto_delete_product_images" name="auto_delete_product_images" value="1" <?php checked( $jharudar_auto_delete_product_images ); ?> />
+								<?php esc_html_e( 'Automatically delete product images when a product is permanently deleted.', 'jharudar-for-woocommerce' ); ?>
+							</label>
+							<p class="description">
+								<?php esc_html_e( 'Removes the featured image and gallery images to keep your media library clean.', 'jharudar-for-woocommerce' ); ?>
+							</p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row">
+							<label for="skip_shared_images"><?php esc_html_e( 'Protect Shared Images', 'jharudar-for-woocommerce' ); ?></label>
+						</th>
+						<td>
+							<label for="skip_shared_images">
+								<input type="checkbox" id="skip_shared_images" name="skip_shared_images" value="1" <?php checked( $jharudar_skip_shared_images ); ?> />
+								<?php esc_html_e( 'Skip images that are used by other products (recommended).', 'jharudar-for-woocommerce' ); ?>
+							</label>
+							<p class="description">
+								<?php esc_html_e( 'When enabled, images shared between products will not be deleted. This prevents accidentally removing images still in use.', 'jharudar-for-woocommerce' ); ?>
 							</p>
 						</td>
 					</tr>
