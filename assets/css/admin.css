@@ -583,6 +583,42 @@
 	color: #646970;
 }
 
+/* Terms preview for attributes */
+.jharudar-terms-preview {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	max-width: 250px;
+}
+
+.jharudar-term-tag {
+	display: inline-block;
+	background: #f0f0f1;
+	color: #1d2327;
+	padding: 2px 8px;
+	border-radius: 3px;
+	font-size: 12px;
+	max-width: 80px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.jharudar-term-more {
+	display: inline-block;
+	background: #2271b1;
+	color: #fff;
+	padding: 2px 8px;
+	border-radius: 3px;
+	font-size: 11px;
+	font-weight: 500;
+	cursor: help;
+}
+
+.jharudar-terms-count {
+	color: #646970;
+}
+
 /* Loading state */
 .jharudar-loading {
 	text-align: center;
@@ -593,6 +629,21 @@
 .jharudar-loading .spinner {
 	float: none;
 	margin: 0 10px 0 0;
+}
+
+/* Spinning animation */
+@keyframes jharudar-spin {
+	from {
+		transform: rotate(0deg);
+	}
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+.spin {
+	animation: jharudar-spin 1s linear infinite;
+	display: inline-block;
 }
 
 /* Empty state */
@@ -745,6 +796,30 @@
 /* Notice inline */
 .notice.inline {
 	margin: 0 0 20px;
+}
+
+/* Hidden elements - shown via JS */
+.jharudar-selected-count.hidden,
+.jharudar-pagination.hidden,
+.jharudar-filter-group.hidden {
+	display: none;
+}
+
+/* Utility classes */
+.jharudar-mb-15 {
+	margin-bottom: 15px;
+}
+
+.jharudar-text-danger {
+	color: #d63638;
+}
+
+.jharudar-filter-group-end {
+	align-self: flex-end;
+}
+
+.jharudar-inline-form {
+	display: inline;
 }
 
 /* Responsive */

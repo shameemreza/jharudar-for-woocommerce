@@ -109,7 +109,7 @@ $jharudar_order_stats     = Jharudar_Orders::get_statistics();
 					<input type="checkbox" id="jharudar-select-all-orders" />
 					<?php esc_html_e( 'Select All', 'jharudar-for-woocommerce' ); ?>
 				</label>
-				<span class="jharudar-selected-count" style="display:none;">
+				<span class="jharudar-selected-count hidden">
 					<span class="count">0</span> <?php esc_html_e( 'selected', 'jharudar-for-woocommerce' ); ?>
 				</span>
 			</div>
@@ -148,7 +148,7 @@ $jharudar_order_stats     = Jharudar_Orders::get_statistics();
 		</div>
 
 		<!-- Pagination -->
-		<div class="jharudar-pagination" id="jharudar-orders-pagination" style="display:none;">
+		<div class="jharudar-pagination hidden" id="jharudar-orders-pagination">
 			<button type="button" class="button" id="jharudar-load-more-orders">
 				<?php esc_html_e( 'Load More', 'jharudar-for-woocommerce' ); ?>
 			</button>

@@ -1,0 +1,21 @@
+parameters:
+    level: 2
+    paths:
+        - includes
+    scanDirectories:
+        - includes
+    ignoreErrors:
+        # WordPress core functions - no stubs available
+        - '#Function (__|_e|_x|_n|_nx|esc_html__|esc_html_e|esc_attr__|esc_attr_e|wp_parse_args|sanitize_text_field|sanitize_title|sanitize_key|absint|wp_unslash|check_ajax_referer|wp_send_json_success|wp_send_json_error|wp_upload_dir|add_action|wp_cache_get|wp_cache_set|wp_cache_delete|WC) not found#'
+        # WordPress constants
+        - '#Constant HOUR_IN_SECONDS not found#'
+        # WooCommerce classes
+        - '#(class|Call to static method .+ on an unknown class) (WC_Tax|WC_Cache_Helper|Jharudar_Exporter)#'
+        # Plugin functions
+        - '#Function (jharudar_sanitize_ids|jharudar_get_batch_size|jharudar_log_activity|jharudar_user_can_manage|as_schedule_single_action) not found#'
+        # Method not found in same class (false positive)
+        - '#Call to an undefined method Jharudar_Tax_Rates::get_stats#'
+        # Instantiated class not found
+        - '#Instantiated class Jharudar_Exporter not found#'
+        - '#Call to method .+ on an unknown class Jharudar_Exporter#'
+        - '#Call to an undefined method Jharudar_Exporter::.+#'

@@ -184,7 +184,7 @@ function jharudar_render_settings_page() {
 
 			<div class="jharudar-settings-section">
 				<h3><?php esc_html_e( 'Cleanup Automation', 'jharudar-for-woocommerce' ); ?></h3>
-				<p class="description" style="margin-bottom: 15px;">
+				<p class="description jharudar-mb-15">
 					<?php esc_html_e( 'These settings enable automatic cleanup actions. Compatible with managed hosting environments (WordPress.com, WP Engine, Kinsta, etc.).', 'jharudar-for-woocommerce' ); ?>
 				</p>
 				<table class="form-table">
@@ -234,6 +234,27 @@ function jharudar_render_settings_page() {
 			</div>
 
 			<div class="jharudar-settings-section">
+				<h3><?php esc_html_e( 'Performance', 'jharudar-for-woocommerce' ); ?></h3>
+				<table class="form-table">
+					<tr>
+						<th scope="row">
+							<?php esc_html_e( 'Cache Management', 'jharudar-for-woocommerce' ); ?>
+						</th>
+						<td>
+							<button type="button" class="button" id="jharudar-clear-cache">
+								<span class="dashicons dashicons-trash" style="margin-top: 3px;"></span>
+								<?php esc_html_e( 'Clear Cache', 'jharudar-for-woocommerce' ); ?>
+							</button>
+							<span id="jharudar-cache-status" style="margin-left: 10px;"></span>
+							<p class="description">
+								<?php esc_html_e( 'Clears all cached statistics and counts. Use this if you notice outdated numbers after making changes. Cache automatically refreshes every 15 minutes.', 'jharudar-for-woocommerce' ); ?>
+							</p>
+						</td>
+					</tr>
+				</table>
+			</div>
+
+			<div class="jharudar-settings-section">
 				<h3><?php esc_html_e( 'Danger Zone', 'jharudar-for-woocommerce' ); ?></h3>
 				<table class="form-table">
 					<tr>
@@ -245,7 +266,7 @@ function jharudar_render_settings_page() {
 								<input type="checkbox" id="delete_data_on_uninstall" name="delete_data_on_uninstall" value="1" <?php checked( $jharudar_delete_data ); ?> />
 								<?php esc_html_e( 'Delete all plugin settings and activity logs when the plugin is uninstalled.', 'jharudar-for-woocommerce' ); ?>
 							</label>
-							<p class="description" style="color: #d63638;">
+							<p class="description jharudar-text-danger">
 								<?php esc_html_e( 'Warning: This will permanently remove all Jharudar settings and logs. Your WooCommerce data will not be affected.', 'jharudar-for-woocommerce' ); ?>
 							</p>
 						</td>

@@ -57,7 +57,7 @@ $jharudar_current_subtab = isset( $_GET['subtab'] ) ? sanitize_key( wp_unslash( 
 						<input type="checkbox" id="jharudar-select-all-images" />
 						<?php esc_html_e( 'Select All', 'jharudar-for-woocommerce' ); ?>
 					</label>
-					<span class="jharudar-selected-count" style="display:none;">
+					<span class="jharudar-selected-count hidden">
 						<span class="count">0</span> <?php esc_html_e( 'selected', 'jharudar-for-woocommerce' ); ?>
 					</span>
 				</div>
@@ -95,9 +95,9 @@ $jharudar_current_subtab = isset( $_GET['subtab'] ) ? sanitize_key( wp_unslash( 
 					<label for="jharudar-filter-category"><?php esc_html_e( 'Category', 'jharudar-for-woocommerce' ); ?></label>
 					<select id="jharudar-filter-category" class="jharudar-select">
 						<option value=""><?php esc_html_e( 'All Categories', 'jharudar-for-woocommerce' ); ?></option>
-						<?php foreach ( $jharudar_categories as $cat ) : ?>
-							<option value="<?php echo esc_attr( $cat->term_id ); ?>">
-								<?php echo esc_html( $cat->name ); ?> (<?php echo esc_html( $cat->count ); ?>)
+						<?php foreach ( $jharudar_categories as $jharudar_cat ) : ?>
+							<option value="<?php echo esc_attr( $jharudar_cat->term_id ); ?>">
+								<?php echo esc_html( $jharudar_cat->name ); ?> (<?php echo esc_html( $jharudar_cat->count ); ?>)
 							</option>
 						<?php endforeach; ?>
 					</select>
@@ -161,7 +161,7 @@ $jharudar_current_subtab = isset( $_GET['subtab'] ) ? sanitize_key( wp_unslash( 
 						<input type="checkbox" id="jharudar-select-all-products" />
 						<?php esc_html_e( 'Select All', 'jharudar-for-woocommerce' ); ?>
 					</label>
-					<span class="jharudar-selected-count" style="display:none;">
+					<span class="jharudar-selected-count hidden">
 						<span class="count">0</span> <?php esc_html_e( 'selected', 'jharudar-for-woocommerce' ); ?>
 					</span>
 				</div>
@@ -200,7 +200,7 @@ $jharudar_current_subtab = isset( $_GET['subtab'] ) ? sanitize_key( wp_unslash( 
 			</div>
 
 			<!-- Pagination -->
-			<div class="jharudar-pagination" id="jharudar-products-pagination" style="display:none;">
+			<div class="jharudar-pagination hidden" id="jharudar-products-pagination">
 				<button type="button" class="button" id="jharudar-load-more-products">
 					<?php esc_html_e( 'Load More', 'jharudar-for-woocommerce' ); ?>
 				</button>

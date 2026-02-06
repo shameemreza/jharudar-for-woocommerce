@@ -146,7 +146,7 @@ function jharudar_render_logs_page() {
 						<input type="date" id="date_to" name="date_to" value="<?php echo esc_attr( $jharudar_date_to ); ?>" />
 					</div>
 
-					<div class="jharudar-filter-group" style="align-self: flex-end;">
+					<div class="jharudar-filter-group jharudar-filter-group-end">
 						<button type="submit" class="button"><?php esc_html_e( 'Filter', 'jharudar-for-woocommerce' ); ?></button>
 						<?php if ( $jharudar_filter_action || $jharudar_filter_type || $jharudar_date_from || $jharudar_date_to ) : ?>
 							<a href="<?php echo esc_url( admin_url( 'admin.php?page=jharudar&tab=logs' ) ); ?>" class="button"><?php esc_html_e( 'Clear', 'jharudar-for-woocommerce' ); ?></a>
@@ -168,7 +168,7 @@ function jharudar_render_logs_page() {
 			</span>
 
 			<?php if ( $jharudar_total_logs > 0 ) : ?>
-				<form method="post" style="display: inline;">
+				<form method="post" class="jharudar-inline-form">
 					<?php wp_nonce_field( 'jharudar_logs_action', 'jharudar_logs_nonce' ); ?>
 					<button type="submit" name="jharudar_clear_logs" class="button" onclick="return confirm('<?php echo esc_js( __( 'Are you sure you want to clear all logs? This action cannot be undone.', 'jharudar-for-woocommerce' ) ); ?>');">
 						<?php esc_html_e( 'Clear All Logs', 'jharudar-for-woocommerce' ); ?>

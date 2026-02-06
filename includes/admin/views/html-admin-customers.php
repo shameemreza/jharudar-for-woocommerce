@@ -50,7 +50,7 @@ $jharudar_stats = Jharudar_Customers::get_statistics();
 					</select>
 				</div>
 
-				<div class="jharudar-filter-group jharudar-inactive-months-filter" style="display:none;">
+				<div class="jharudar-filter-group jharudar-inactive-months-filter hidden">
 					<label for="jharudar-filter-inactive-months"><?php esc_html_e( 'Inactive Period', 'jharudar-for-woocommerce' ); ?></label>
 					<select id="jharudar-filter-inactive-months" class="jharudar-select">
 						<option value="3"><?php esc_html_e( '3+ months', 'jharudar-for-woocommerce' ); ?></option>
@@ -83,7 +83,7 @@ $jharudar_stats = Jharudar_Customers::get_statistics();
 						<input type="checkbox" id="jharudar-select-all-customers" />
 						<?php esc_html_e( 'Select All', 'jharudar-for-woocommerce' ); ?>
 					</label>
-					<span class="jharudar-selected-count" style="display:none;">
+					<span class="jharudar-selected-count hidden">
 						<span class="count">0</span> <?php esc_html_e( 'selected', 'jharudar-for-woocommerce' ); ?>
 					</span>
 				</div>
@@ -122,7 +122,7 @@ $jharudar_stats = Jharudar_Customers::get_statistics();
 			</div>
 
 			<!-- Pagination -->
-			<div class="jharudar-pagination" id="jharudar-customers-pagination" style="display:none;">
+			<div class="jharudar-pagination hidden" id="jharudar-customers-pagination">
 				<button type="button" class="button" id="jharudar-load-more-customers">
 					<?php esc_html_e( 'Load More', 'jharudar-for-woocommerce' ); ?>
 				</button>

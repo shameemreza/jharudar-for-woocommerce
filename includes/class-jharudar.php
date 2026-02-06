@@ -63,6 +63,34 @@ final class Jharudar {
 	public $automation = null;
 
 	/**
+	 * Coupons module instance.
+	 *
+	 * @var Jharudar_Coupons|null
+	 */
+	public $coupons = null;
+
+	/**
+	 * Taxonomy module instance.
+	 *
+	 * @var Jharudar_Taxonomy|null
+	 */
+	public $taxonomy = null;
+
+	/**
+	 * Tax Rates module instance.
+	 *
+	 * @var Jharudar_Tax_Rates|null
+	 */
+	public $tax_rates = null;
+
+	/**
+	 * Shipping module instance.
+	 *
+	 * @var Jharudar_Shipping|null
+	 */
+	public $shipping = null;
+
+	/**
 	 * Get the single instance of the class.
 	 *
 	 * @since 0.0.1
@@ -151,6 +179,10 @@ final class Jharudar {
 		$this->products  = new Jharudar_Products();
 		$this->orders    = new Jharudar_Orders();
 		$this->customers = new Jharudar_Customers();
+		$this->coupons   = new Jharudar_Coupons();
+		$this->taxonomy  = new Jharudar_Taxonomy();
+		$this->tax_rates = new Jharudar_Tax_Rates();
+		$this->shipping  = new Jharudar_Shipping();
 
 		// Automation hooks.
 		$this->automation = new Jharudar_Automation();
