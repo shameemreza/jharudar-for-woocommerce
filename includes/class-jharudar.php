@@ -91,6 +91,13 @@ final class Jharudar {
 	public $shipping = null;
 
 	/**
+	 * Database module instance.
+	 *
+	 * @var Jharudar_Database|null
+	 */
+	public $database = null;
+
+	/**
 	 * Get the single instance of the class.
 	 *
 	 * @since 0.0.1
@@ -183,6 +190,12 @@ final class Jharudar {
 		$this->taxonomy  = new Jharudar_Taxonomy();
 		$this->tax_rates = new Jharudar_Tax_Rates();
 		$this->shipping  = new Jharudar_Shipping();
+
+		// Database module.
+		$this->database = new Jharudar_Database();
+
+		// Cache helper (registers AJAX handler and auto-clear hooks).
+		Jharudar_Cache::init();
 
 		// Automation hooks.
 		$this->automation = new Jharudar_Automation();

@@ -33,6 +33,7 @@
 			this.bindTaxonomyEvents();
 			this.bindTaxRateEvents();
 			this.bindShippingEvents();
+			this.bindDatabaseEvents();
 			this.autoLoadData();
 		},
 
@@ -97,12 +98,20 @@
 					self.loadShippingClasses();
 				}
 			}
+
+			// Load stats for database page.
+			if ( $( '.jharudar-database-page' ).length ) {
+				self.loadDatabaseStats();
+			}
 		},
 
 		/**
 		 * Initialize SelectWoo on select elements.
 		 */
 		initSelectWoo: function() {
+			if ( typeof $.fn.selectWoo !== 'function' ) {
+				return;
+			}
 			$( '.jharudar-select, .jharudar-select2' ).selectWoo( {
 				width: '200px',
 				allowClear: true,
@@ -153,7 +162,7 @@
 			var $status = $( '#jharudar-cache-status' );
 			var originalText = $button.html();
 
-			$button.prop( 'disabled', true ).html( '<span class="dashicons dashicons-update spin" style="margin-top: 3px;"></span> Clearing...' );
+			$button.prop( 'disabled', true ).html( '<span class="dashicons dashicons-update spin jharudar-icon-align"></span> Clearing...' );
 			$status.html( '' );
 
 			$.ajax( {
@@ -166,16 +175,152 @@
 				success: function( response ) {
 					$button.prop( 'disabled', false ).html( originalText );
 					if ( response.success ) {
-						$status.html( '<span style="color: #00a32a;">&#10003; ' + response.data.message + '</span>' );
+						$status.html( '<span class="jharudar-text-success">&#10003; ' + response.data.message + '</span>' );
 					} else {
-						$status.html( '<span style="color: #d63638;">' + response.data.message + '</span>' );
+						$status.html( '<span class="jharudar-text-danger">' + ( response.data && response.data.message ? response.data.message : 'An error occurred.' ) + '</span>' );
 					}
 				},
 				error: function() {
 					$button.prop( 'disabled', false ).html( originalText );
-					$status.html( '<span style="color: #d63638;">Failed to clear cache.</span>' );
+					$status.html( '<span class="jharudar-text-danger">Failed to clear cache.</span>' );
 				}
 			} );
+		},
+
+		/**
+		 * Show a WordPress-style confirmation modal.
+		 *
+		 * Returns a jQuery Deferred. Call .then( onConfirm ) to react.
+		 *
+		 * @param {Object} opts Modal options.
+		 * @param {string} opts.title   Modal title text.
+		 * @param {string} opts.message Body message (HTML allowed).
+		 * @param {string} [opts.confirmText] Confirm button label. Default "Confirm".
+		 * @param {string} [opts.cancelText]  Cancel button label. Default "Cancel".
+		 * @param {boolean} [opts.destructive] Use red destructive button style. Default false.
+		 * @return {jQuery.Deferred}
+		 */
+		showConfirmModal: function( opts ) {
+			var deferred = $.Deferred();
+			var title       = opts.title || 'Are you sure?';
+			var message     = opts.message || '';
+			var confirmText = opts.confirmText || 'Confirm';
+			var cancelText  = opts.cancelText || 'Cancel';
+			var destructive = opts.destructive || false;
+
+			// Remove any existing confirm modal.
+			$( '#jharudar-confirm-modal' ).remove();
+
+			var btnClass = 'button button-primary' + ( destructive ? ' jharudar-btn-destructive' : '' );
+
+			var html = '<div id="jharudar-confirm-modal" class="jharudar-modal-overlay">' +
+				'<div class="jharudar-modal">' +
+					'<div class="jharudar-modal-header">' +
+						'<h3>' + title + '</h3>' +
+						'<button type="button" class="jharudar-modal-close" id="jharudar-confirm-close">&times;</button>' +
+					'</div>' +
+					'<div class="jharudar-modal-body">' +
+						'<p>' + message + '</p>' +
+					'</div>' +
+					'<div class="jharudar-modal-footer">' +
+						'<button type="button" class="button" id="jharudar-confirm-cancel">' + cancelText + '</button>' +
+						'<button type="button" class="' + btnClass + '" id="jharudar-confirm-ok">' + confirmText + '</button>' +
+					'</div>' +
+				'</div>' +
+			'</div>';
+
+			$( 'body' ).append( html );
+
+			// Trigger reflow then show.
+			var $overlay = $( '#jharudar-confirm-modal' );
+			// Force reflow before adding class.
+			$overlay[0].offsetHeight; // jshint ignore:line
+			$overlay.addClass( 'active' );
+
+			function cleanup( result ) {
+				$overlay.removeClass( 'active' );
+				setTimeout( function() {
+					$overlay.remove();
+				}, 160 );
+				if ( result ) {
+					deferred.resolve();
+				} else {
+					deferred.reject();
+				}
+			}
+
+			$( '#jharudar-confirm-ok' ).on( 'click', function() {
+				cleanup( true );
+			} );
+
+			$( '#jharudar-confirm-cancel, #jharudar-confirm-close' ).on( 'click', function() {
+				cleanup( false );
+			} );
+
+			$overlay.on( 'click', function( e ) {
+				if ( $( e.target ).hasClass( 'jharudar-modal-overlay' ) ) {
+					cleanup( false );
+				}
+			} );
+
+			$( document ).one( 'keyup.jharudarConfirm', function( e ) {
+				if ( e.key === 'Escape' ) {
+					cleanup( false );
+				}
+			} );
+
+			return deferred.promise();
+		},
+
+		/**
+		 * Show a WordPress-style admin notice banner.
+		 *
+		 * @param {string} message   Notice text.
+		 * @param {string} [type]    One of: success, error, warning, info. Default "success".
+		 * @param {number} [autoDismiss] Auto-dismiss after ms. 0 = manual only. Default 6000.
+		 */
+		showAdminNotice: function( message, type, autoDismiss ) {
+			type        = type || 'success';
+			autoDismiss = autoDismiss !== undefined ? autoDismiss : 6000;
+
+			// Find the best insertion point (inside the plugin wrap, after the header).
+			var $target = $( '.jharudar-module-content' ).first();
+			if ( ! $target.length ) {
+				$target = $( '.wrap' ).first();
+			}
+
+			var html = '<div class="jharudar-admin-notice notice-' + type + '">' +
+				'<p>' + message + '</p>' +
+				'<button type="button" class="notice-dismiss"><span class="screen-reader-text">Dismiss this notice.</span></button>' +
+			'</div>';
+
+			var $notice = $( html );
+
+			// Prepend so it appears at the top of the content area.
+			$target.before( $notice );
+
+			// Scroll to notice.
+			$( 'html, body' ).animate( { scrollTop: $notice.offset().top - 50 }, 200 );
+
+			// Dismiss handler.
+			$notice.find( '.notice-dismiss' ).on( 'click', function() {
+				$notice.addClass( 'jharudar-notice-dismissing' );
+				setTimeout( function() {
+					$notice.remove();
+				}, 220 );
+			} );
+
+			// Auto-dismiss.
+			if ( autoDismiss > 0 ) {
+				setTimeout( function() {
+					if ( $notice.length && $notice.parent().length ) {
+						$notice.addClass( 'jharudar-notice-dismissing' );
+						setTimeout( function() {
+							$notice.remove();
+						}, 220 );
+					}
+				}, autoDismiss );
+			}
 		},
 
 		/**
@@ -593,7 +738,7 @@
 			var ids = this.getSelectedIds( '.jharudar-product-checkbox' );
 			
 			if ( ids.length === 0 ) {
-				alert( 'Please select at least one product to export.' );
+				this.showAdminNotice( 'Please select at least one product to export.', 'warning' );
 				return;
 			}
 
@@ -640,16 +785,16 @@
 						if ( response.data.failed > 0 ) {
 							msg += ' ' + response.data.failed + ' failed.';
 						}
-						alert( msg );
+						self.showAdminNotice( msg, 'success' );
 						self.currentOffset = 0;
 						self.loadProducts();
 					} else {
-						alert( response.data.message || 'Error deleting products.' );
+						self.showAdminNotice( response.data.message || 'Error deleting products.', 'error' );
 					}
 				},
 				error: function() {
 					self.hideProgress( 'jharudar-products-progress' );
-					alert( 'Error deleting products. Please try again.' );
+					self.showAdminNotice( 'Error deleting products. Please try again.', 'error' );
 				}
 			} );
 		},
@@ -731,29 +876,32 @@
 			var self = this;
 			var ids = this.getSelectedIds( '.jharudar-image-checkbox' );
 
-			if ( ! confirm( 'Are you sure you want to delete ' + ids.length + ' orphaned image(s)? This cannot be undone.' ) ) {
-				return;
-			}
-
-			$.ajax( {
-				url: jharudar_admin.ajax_url,
-				type: 'POST',
-				data: {
-					action: 'jharudar_delete_orphaned_images',
-					nonce: jharudar_admin.nonce,
-					image_ids: ids
-				},
-				success: function( response ) {
-					if ( response.success ) {
-						alert( 'Deleted ' + response.data.deleted + ' image(s).' );
-						self.scanOrphanedImages();
-					} else {
-						alert( response.data.message || 'Error deleting images.' );
+			self.showConfirmModal( {
+				title: 'Delete Orphaned Images',
+				message: 'Are you sure you want to delete ' + ids.length + ' orphaned image(s)? This cannot be undone.',
+				confirmText: 'Delete',
+				destructive: true
+			} ).then( function() {
+				$.ajax( {
+					url: jharudar_admin.ajax_url,
+					type: 'POST',
+					data: {
+						action: 'jharudar_delete_orphaned_images',
+						nonce: jharudar_admin.nonce,
+						image_ids: ids
+					},
+					success: function( response ) {
+						if ( response.success ) {
+							self.showAdminNotice( 'Deleted ' + response.data.deleted + ' image(s).', 'success' );
+							self.scanOrphanedImages();
+						} else {
+							self.showAdminNotice( response.data.message || 'Error deleting images.', 'error' );
+						}
+					},
+					error: function() {
+						self.showAdminNotice( 'Error deleting images. Please try again.', 'error' );
 					}
-				},
-				error: function() {
-					alert( 'Error deleting images. Please try again.' );
-				}
+				} );
 			} );
 		},
 
@@ -891,7 +1039,7 @@
 			var ids = this.getSelectedIds( '.jharudar-order-checkbox' );
 			
 			if ( ids.length === 0 ) {
-				alert( 'Please select at least one order to export.' );
+				this.showAdminNotice( 'Please select at least one order to export.', 'warning' );
 				return;
 			}
 
@@ -943,16 +1091,16 @@
 				success: function( response ) {
 					self.hideProgress( 'jharudar-orders-progress' );
 					if ( response.success ) {
-						alert( 'Deleted ' + response.data.deleted + ' order(s).' );
+						self.showAdminNotice( 'Deleted ' + response.data.deleted + ' order(s).', 'success' );
 						self.currentOffset = 0;
 						self.loadOrders();
 					} else {
-						alert( response.data.message || 'Error deleting orders.' );
+						self.showAdminNotice( response.data.message || 'Error deleting orders.', 'error' );
 					}
 				},
 				error: function() {
 					self.hideProgress( 'jharudar-orders-progress' );
-					alert( 'Error deleting orders. Please try again.' );
+					self.showAdminNotice( 'Error deleting orders. Please try again.', 'error' );
 				}
 			} );
 		},
@@ -978,16 +1126,16 @@
 				success: function( response ) {
 					self.hideProgress( 'jharudar-orders-progress' );
 					if ( response.success ) {
-						alert( 'Anonymized ' + response.data.anonymized + ' order(s).' );
+						self.showAdminNotice( 'Anonymized ' + response.data.anonymized + ' order(s).', 'success' );
 						self.currentOffset = 0;
 						self.loadOrders();
 					} else {
-						alert( response.data.message || 'Error anonymizing orders.' );
+						self.showAdminNotice( response.data.message || 'Error anonymizing orders.', 'error' );
 					}
 				},
 				error: function() {
 					self.hideProgress( 'jharudar-orders-progress' );
-					alert( 'Error anonymizing orders. Please try again.' );
+					self.showAdminNotice( 'Error anonymizing orders. Please try again.', 'error' );
 				}
 			} );
 		},
@@ -1123,7 +1271,7 @@
 			var ids = this.getSelectedIds( '.jharudar-customer-checkbox' );
 			
 			if ( ids.length === 0 ) {
-				alert( 'Please select at least one customer to export.' );
+				this.showAdminNotice( 'Please select at least one customer to export.', 'warning' );
 				return;
 			}
 
@@ -1178,16 +1326,16 @@
 						if ( response.data.skipped > 0 ) {
 							msg += ' ' + response.data.skipped + ' skipped (admin/manager accounts).';
 						}
-						alert( msg );
+						self.showAdminNotice( msg, 'success' );
 						self.currentOffset = 0;
 						self.loadCustomers();
 					} else {
-						alert( response.data.message || 'Error deleting customers.' );
+						self.showAdminNotice( response.data.message || 'Error deleting customers.', 'error' );
 					}
 				},
 				error: function() {
 					self.hideProgress( 'jharudar-customers-progress' );
-					alert( 'Error deleting customers. Please try again.' );
+					self.showAdminNotice( 'Error deleting customers. Please try again.', 'error' );
 				}
 			} );
 		},
@@ -1217,16 +1365,16 @@
 						if ( response.data.skipped > 0 ) {
 							msg += ' ' + response.data.skipped + ' skipped (admin/manager accounts).';
 						}
-						alert( msg );
+						self.showAdminNotice( msg, 'success' );
 						self.currentOffset = 0;
 						self.loadCustomers();
 					} else {
-						alert( response.data.message || 'Error anonymizing customers.' );
+						self.showAdminNotice( response.data.message || 'Error anonymizing customers.', 'error' );
 					}
 				},
 				error: function() {
 					self.hideProgress( 'jharudar-customers-progress' );
-					alert( 'Error anonymizing customers. Please try again.' );
+					self.showAdminNotice( 'Error anonymizing customers. Please try again.', 'error' );
 				}
 			} );
 		},
@@ -1311,12 +1459,15 @@
 					nonce: jharudar_admin.nonce
 				},
 				success: function( response ) {
-					if ( response.success ) {
+					if ( response.success && response.data ) {
 						$( '#jharudar-total-coupons' ).text( response.data.total );
 						$( '#jharudar-expired-coupons' ).text( response.data.expired );
 						$( '#jharudar-unused-coupons' ).text( response.data.unused );
 						$( '#jharudar-limit-reached-coupons' ).text( response.data.limit_reached );
 					}
+				},
+				error: function() {
+					// Stats will remain at default values on network error.
 				}
 			} );
 		},
@@ -1456,7 +1607,7 @@
 			var ids = this.getSelectedIds( '.jharudar-coupon-checkbox' );
 			
 			if ( ids.length === 0 ) {
-				alert( 'Please select at least one coupon to export.' );
+				this.showAdminNotice( 'Please select at least one coupon to export.', 'warning' );
 				return;
 			}
 
@@ -1496,17 +1647,17 @@
 				success: function( response ) {
 					self.hideProgress( 'jharudar-coupons-progress' );
 					if ( response.success ) {
-						alert( 'Deleted ' + response.data.deleted + ' coupon(s).' );
+						self.showAdminNotice( 'Deleted ' + response.data.deleted + ' coupon(s).', 'success' );
 						self.currentOffset = 0;
 						self.loadCoupons();
 						self.loadCouponStats();
 					} else {
-						alert( response.data.message || 'Error deleting coupons.' );
+						self.showAdminNotice( response.data.message || 'Error deleting coupons.', 'error' );
 					}
 				},
 				error: function() {
 					self.hideProgress( 'jharudar-coupons-progress' );
-					alert( 'Error deleting coupons. Please try again.' );
+					self.showAdminNotice( 'Error deleting coupons. Please try again.', 'error' );
 				}
 			} );
 		},
@@ -1634,7 +1785,7 @@
 					nonce: jharudar_admin.nonce
 				},
 				success: function( response ) {
-					if ( response.success ) {
+					if ( response.success && response.data ) {
 						$( '#jharudar-total-categories' ).text( response.data.total_categories );
 						$( '#jharudar-empty-categories' ).text( response.data.empty_categories );
 						$( '#jharudar-total-tags' ).text( response.data.total_tags );
@@ -1642,6 +1793,9 @@
 						$( '#jharudar-total-attributes' ).text( response.data.total_attributes );
 						$( '#jharudar-unused-attributes' ).text( response.data.unused_attributes );
 					}
+				},
+				error: function() {
+					// Stats will remain at default values on network error.
 				}
 			} );
 		},
@@ -1878,17 +2032,17 @@
 						if ( response.data.failed > 0 ) {
 							msg += ' ' + response.data.failed + ' failed.';
 						}
-						alert( msg );
+						self.showAdminNotice( msg, 'success' );
 						self.currentOffset = 0;
 						self.loadTaxonomy( type );
 						self.loadTaxonomyStats();
 					} else {
-						alert( response.data.message || 'Error deleting ' + type + '.' );
+						self.showAdminNotice( response.data.message || 'Error deleting ' + type + '.', 'error' );
 					}
 				},
 				error: function() {
 					self.hideProgress( progressId );
-					alert( 'Error deleting ' + type + '. Please try again.' );
+					self.showAdminNotice( 'Error deleting ' + type + '. Please try again.', 'error' );
 				}
 			} );
 		},
@@ -2028,6 +2182,321 @@
 		},
 
 		/**
+		 * Bind database module events.
+		 */
+		bindDatabaseEvents: function() {
+			var self = this;
+
+			if ( ! $( '.jharudar-database-page' ).length ) {
+				return;
+			}
+
+			// Clean expired transients.
+			$( '#jharudar-clean-transients' ).on( 'click', function() {
+				self.showConfirmModal( {
+					title: 'Clean Expired Transients',
+					message: 'This will remove all expired transients from the database. This only clears cached data and is completely safe.',
+					confirmText: 'Clean Transients'
+				} ).then( function() {
+					self.runDatabaseAction( 'jharudar_clean_transients' );
+				} );
+			} );
+
+			// Clean WooCommerce transients.
+			$( '#jharudar-clean-wc-transients' ).on( 'click', function() {
+				self.showConfirmModal( {
+					title: 'Clear WooCommerce Transients',
+					message: 'This will clear WooCommerce-specific transients used for caching. WooCommerce will regenerate them as needed.',
+					confirmText: 'Clear WC Transients'
+				} ).then( function() {
+					self.runDatabaseAction( 'jharudar_clean_wc_transients' );
+				} );
+			} );
+
+			// Clean all transients.
+			$( '#jharudar-clean-all-transients' ).on( 'click', function() {
+				self.showConfirmModal( {
+					title: 'Clean All Transients',
+					message: 'This will remove <strong>all</strong> transients from the database, including active caches from WordPress core and other plugins. Everything will be regenerated on the next page load.',
+					confirmText: 'Clean All',
+					destructive: true
+				} ).then( function() {
+					self.runDatabaseAction( 'jharudar_clean_all_transients' );
+				} );
+			} );
+
+			// Clean orphaned meta.
+			$( document ).on( 'click', '.jharudar-clean-orphaned-meta', function() {
+				var type = $( this ).data( 'meta-type' );
+				if ( ! type ) {
+					return;
+				}
+
+				self.showConfirmModal( {
+					title: 'Clean Orphaned Data',
+					message: 'This will permanently remove orphaned ' + type + ' entries from the database. Please ensure you have a recent backup before continuing.',
+					confirmText: 'Clean Data',
+					destructive: true
+				} ).then( function() {
+					self.runDatabaseAction( 'jharudar_clean_orphaned_meta', { meta_type: type } );
+				} );
+			} );
+
+			// Regenerate customer lookup table.
+			$( '#jharudar-regenerate-customer-lookup' ).on( 'click', function() {
+				self.showConfirmModal( {
+					title: 'Regenerate Customer Lookup Table',
+					message: 'This will truncate and rebuild the WooCommerce customer lookup table. The operation may take a while on stores with many customers.',
+					confirmText: 'Regenerate'
+				} ).then( function() {
+					self.runDatabaseAction( 'jharudar_regenerate_customer_lookup' );
+				} );
+			} );
+
+			// Repair order stats.
+			$( '#jharudar-repair-order-stats' ).on( 'click', function() {
+				self.showConfirmModal( {
+					title: 'Repair Order Stats',
+					message: 'This will truncate and rebuild the WooCommerce order stats table. The operation may take a while on stores with many orders.',
+					confirmText: 'Repair Stats'
+				} ).then( function() {
+					self.runDatabaseAction( 'jharudar_repair_order_stats' );
+				} );
+			} );
+
+			// Clean expired sessions.
+			$( '#jharudar-clean-sessions' ).on( 'click', function() {
+				self.showConfirmModal( {
+					title: 'Clean Expired Sessions',
+					message: 'This will remove expired WooCommerce sessions. Active customer sessions will not be affected.',
+					confirmText: 'Clean Sessions'
+				} ).then( function() {
+					self.runDatabaseAction( 'jharudar_clean_sessions' );
+				} );
+			} );
+
+			// Clean oEmbed caches.
+			$( '#jharudar-clean-oembed' ).on( 'click', function() {
+				self.showConfirmModal( {
+					title: 'Clean oEmbed Caches',
+					message: 'This will remove all cached oEmbed data from post meta. WordPress will re-fetch embed previews when needed.',
+					confirmText: 'Clean oEmbed'
+				} ).then( function() {
+					self.runDatabaseAction( 'jharudar_clean_oembed_caches' );
+				} );
+			} );
+
+			// Clean duplicate meta.
+			$( '#jharudar-clean-duplicate-meta' ).on( 'click', function() {
+				self.showConfirmModal( {
+					title: 'Clean Duplicate Meta',
+					message: 'This will remove duplicate postmeta rows (same post_id, meta_key, and meta_value). The original entry is always kept. Please back up your database first.',
+					confirmText: 'Clean Duplicates',
+					destructive: true
+				} ).then( function() {
+					self.runDatabaseAction( 'jharudar_clean_duplicate_meta' );
+				} );
+			} );
+
+			// Load table analysis.
+			$( '#jharudar-load-table-analysis' ).on( 'click', function() {
+				self.loadTableAnalysis();
+			} );
+
+			// Delete orphaned tables.
+			$( '#jharudar-delete-orphaned-tables' ).on( 'click', function() {
+				var tables = [];
+				$( '.jharudar-orphaned-table-checkbox:checked' ).each( function() {
+					tables.push( $( this ).val() );
+				} );
+
+				if ( tables.length === 0 ) {
+					self.showAdminNotice( 'Please select at least one table to delete.', 'warning' );
+					return;
+				}
+
+				self.showConfirmModal( {
+					title: 'Delete Orphaned Tables',
+					message: 'This will permanently <strong>DROP</strong> ' + tables.length + ' table(s) from the database. This cannot be undone. Are you absolutely sure?',
+					confirmText: 'Delete Tables',
+					destructive: true
+				} ).then( function() {
+					self.runDatabaseAction( 'jharudar_delete_orphaned_tables', { tables: tables } );
+				} );
+			} );
+
+			// Optimize all tables.
+			$( '#jharudar-optimize-all-tables' ).on( 'click', function() {
+				self.showConfirmModal( {
+					title: 'Optimize All Tables',
+					message: 'This will run OPTIMIZE TABLE on all database tables with your prefix. This reclaims unused space and may take a few moments.',
+					confirmText: 'Optimize Tables'
+				} ).then( function() {
+					self.runDatabaseAction( 'jharudar_optimize_tables', { tables: [ '_all_' ] } );
+				} );
+			} );
+
+			// Repair all tables.
+			$( '#jharudar-repair-all-tables' ).on( 'click', function() {
+				self.showConfirmModal( {
+					title: 'Repair All Tables',
+					message: 'This will run REPAIR TABLE on all database tables with your prefix. Use this if you suspect table corruption.',
+					confirmText: 'Repair Tables'
+				} ).then( function() {
+					self.runDatabaseAction( 'jharudar_repair_tables', { tables: [ '_all_' ] } );
+				} );
+			} );
+
+			// Toggle autoload.
+			$( document ).on( 'click', '.jharudar-toggle-autoload', function() {
+				var $btn = $( this );
+				var optionName = $btn.data( 'option' );
+				var newAutoload = $btn.data( 'autoload' ) === 'yes' ? 'no' : 'yes';
+
+				$btn.prop( 'disabled', true );
+
+				$.ajax( {
+					url: jharudar_admin.ajax_url,
+					type: 'POST',
+					data: {
+						action: 'jharudar_toggle_autoload',
+						nonce: jharudar_admin.nonce,
+						option_name: optionName,
+						autoload: newAutoload
+					},
+					success: function( response ) {
+						$btn.prop( 'disabled', false );
+						if ( response.success ) {
+							$btn.data( 'autoload', newAutoload );
+							$btn.text( newAutoload );
+							$btn.removeClass( 'jharudar-autoload-yes jharudar-autoload-no' )
+								.addClass( 'jharudar-autoload-' + newAutoload );
+							self.showAdminNotice( response.data.message, 'success' );
+						} else {
+							self.showAdminNotice( response.data.message || 'Failed to update autoload.', 'error' );
+						}
+					},
+					error: function() {
+						$btn.prop( 'disabled', false );
+						self.showAdminNotice( 'Failed to update autoload.', 'error' );
+					}
+				} );
+			} );
+		},
+
+		/**
+		 * Load table analysis data.
+		 */
+		loadTableAnalysis: function() {
+			var self = this;
+			var $btn = $( '#jharudar-load-table-analysis' );
+			var $results = $( '#jharudar-table-analysis-results' );
+
+			$btn.prop( 'disabled', true ).text( 'Loading...' );
+
+			$.ajax( {
+				url: jharudar_admin.ajax_url,
+				type: 'POST',
+				data: {
+					action: 'jharudar_get_table_analysis',
+					nonce: jharudar_admin.nonce
+				},
+				success: function( response ) {
+					$btn.prop( 'disabled', false ).text( 'Load Analysis' );
+
+					if ( ! response.success ) {
+						self.showAdminNotice( response.data.message || 'Failed to load analysis.', 'error' );
+						return;
+					}
+
+					var d = response.data;
+
+					// Update summary stats.
+					$( '#jharudar-db-total-size' ).text( self.formatBytes( d.total_size ) );
+					$( '#jharudar-db-total-tables' ).text( d.tables.length );
+					$( '#jharudar-db-overhead' ).text( self.formatBytes( d.overhead ) );
+					$( '#jharudar-db-autoload-size' ).text( self.formatBytes( d.autoload_total ) );
+					$( '#jharudar-db-orphaned-tables' ).text( d.orphaned_tables.length );
+
+					// Render tables list.
+					var html = '';
+					$.each( d.tables, function( i, t ) {
+						html += '<tr>' +
+							'<td>' + self.escapeHtml( t.name ) + '</td>' +
+							'<td>' + ( t.engine || '-' ) + '</td>' +
+							'<td>' + t.rows.toLocaleString() + '</td>' +
+							'<td>' + self.formatBytes( t.total_size ) + '</td>' +
+							'<td>' + ( t.overhead > 0 ? self.formatBytes( t.overhead ) : '-' ) + '</td>' +
+							'</tr>';
+					} );
+					$( '#jharudar-tables-list tbody' ).html( html );
+
+					// Render large options list.
+					var optHtml = '';
+					$.each( d.large_options, function( i, opt ) {
+						optHtml += '<tr>' +
+							'<td>' + self.escapeHtml( opt.option_name ) + '</td>' +
+							'<td>' + self.formatBytes( parseInt( opt.size, 10 ) ) + '</td>' +
+							'<td><button type="button" class="button button-small jharudar-toggle-autoload jharudar-autoload-' + opt.autoload + '" data-option="' + self.escapeHtml( opt.option_name ) + '" data-autoload="' + opt.autoload + '">' + opt.autoload + '</button></td>' +
+							'</tr>';
+					} );
+					$( '#jharudar-large-options-list tbody' ).html( optHtml );
+
+					// Render orphaned tables.
+					if ( d.orphaned_tables.length > 0 ) {
+						var orphHtml = '<table class="wp-list-table widefat fixed striped"><thead><tr>' +
+							'<th class="check-column"><input type="checkbox" id="jharudar-select-all-orphaned-tables" /></th>' +
+							'<th>Table Name</th></tr></thead><tbody>';
+						$.each( d.orphaned_tables, function( i, tableName ) {
+							orphHtml += '<tr>' +
+								'<td><input type="checkbox" class="jharudar-orphaned-table-checkbox" value="' + self.escapeHtml( tableName ) + '" /></td>' +
+								'<td>' + self.escapeHtml( tableName ) + '</td>' +
+								'</tr>';
+						} );
+						orphHtml += '</tbody></table>';
+						$( '#jharudar-orphaned-tables-list' ).html( orphHtml );
+						$( '#jharudar-orphaned-tables-section' ).removeClass( 'jharudar-hidden' );
+						$( '#jharudar-delete-orphaned-tables' ).prop( 'disabled', true );
+
+						// Select all orphaned tables (rebind on the new elements, not document).
+						$( '#jharudar-select-all-orphaned-tables' ).on( 'change', function() {
+							var checked = $( this ).is( ':checked' );
+							$( '.jharudar-orphaned-table-checkbox' ).prop( 'checked', checked );
+							$( '#jharudar-delete-orphaned-tables' ).prop( 'disabled', ! checked );
+						} );
+						// Use off/on to prevent stacking handlers from repeated loads.
+						$( document ).off( 'change.jharudarOrphanedCheckbox' ).on( 'change.jharudarOrphanedCheckbox', '.jharudar-orphaned-table-checkbox', function() {
+							$( '#jharudar-delete-orphaned-tables' ).prop( 'disabled', $( '.jharudar-orphaned-table-checkbox:checked' ).length === 0 );
+						} );
+					} else {
+						$( '#jharudar-orphaned-tables-section' ).addClass( 'jharudar-hidden' );
+					}
+
+					$results.removeClass( 'jharudar-hidden' );
+				},
+				error: function() {
+					$btn.prop( 'disabled', false ).text( 'Load Analysis' );
+					self.showAdminNotice( 'Failed to load table analysis.', 'error' );
+				}
+			} );
+		},
+
+		/**
+		 * Format bytes to human readable string.
+		 *
+		 * @param {number} bytes The byte count.
+		 * @return {string} Formatted string.
+		 */
+		formatBytes: function( bytes ) {
+			if ( ! bytes || bytes === 0 ) {
+				return '0 B';
+			}
+			var units = [ 'B', 'KB', 'MB', 'GB' ];
+			var i = Math.floor( Math.log( bytes ) / Math.log( 1024 ) );
+			return ( bytes / Math.pow( 1024, i ) ).toFixed( 1 ) + ' ' + units[ i ];
+		},
+
+		/**
 		 * Current store delete action type.
 		 */
 		currentStoreDeleteType: '',
@@ -2047,11 +2516,14 @@
 					nonce: jharudar_admin.nonce
 				},
 				success: function( response ) {
-					if ( response.success ) {
+					if ( response.success && response.data ) {
 						$( '#jharudar-total-tax-rates' ).text( response.data.total );
 						$( '#jharudar-tax-countries' ).text( response.data.countries );
 						$( '#jharudar-tax-classes' ).text( response.data.tax_classes );
 					}
+				},
+				error: function() {
+					// Stats will remain at default values on network error.
 				}
 			} );
 
@@ -2064,12 +2536,76 @@
 					nonce: jharudar_admin.nonce
 				},
 				success: function( response ) {
-					if ( response.success ) {
+					if ( response.success && response.data ) {
 						$( '#jharudar-total-zones' ).text( response.data.total_zones );
 						$( '#jharudar-empty-zones' ).text( response.data.empty_zones );
 						$( '#jharudar-total-shipping-classes' ).text( response.data.total_classes );
 						$( '#jharudar-unused-shipping-classes' ).text( response.data.unused_classes );
 					}
+				},
+				error: function() {
+					// Stats will remain at default values on network error.
+				}
+			} );
+		},
+
+		/**
+		 * Load database statistics.
+		 */
+		loadDatabaseStats: function() {
+			$.ajax( {
+				url: jharudar_admin.ajax_url,
+				type: 'POST',
+				data: {
+					action: 'jharudar_get_database_stats',
+					nonce: jharudar_admin.nonce
+				},
+				success: function( response ) {
+					if ( response.success && response.data ) {
+						if ( response.data.transients_total !== undefined ) {
+							$( '#jharudar-transients-total' ).text( response.data.transients_total.toLocaleString() );
+						}
+						if ( response.data.expired_transients !== undefined ) {
+							$( '#jharudar-transients-expired' ).text( response.data.expired_transients.toLocaleString() );
+						}
+						if ( response.data.wc_transients_total !== undefined ) {
+							$( '#jharudar-transients-wc-total' ).text( response.data.wc_transients_total.toLocaleString() );
+						}
+
+						// Sessions & oEmbed stats.
+						if ( response.data.expired_sessions !== undefined ) {
+							$( '#jharudar-expired-sessions' ).text( response.data.expired_sessions.toLocaleString() );
+						}
+						if ( response.data.oembed_caches !== undefined ) {
+							$( '#jharudar-oembed-caches' ).text( response.data.oembed_caches.toLocaleString() );
+						}
+
+						// Orphaned meta stats.
+						if ( response.data.orphaned_postmeta !== undefined ) {
+							$( '#jharudar-orphaned-postmeta-count' ).text( response.data.orphaned_postmeta.toLocaleString() );
+						}
+						if ( response.data.orphaned_usermeta !== undefined ) {
+							$( '#jharudar-orphaned-usermeta-count' ).text( response.data.orphaned_usermeta.toLocaleString() );
+						}
+						if ( response.data.orphaned_termmeta !== undefined ) {
+							$( '#jharudar-orphaned-termmeta-count' ).text( response.data.orphaned_termmeta.toLocaleString() );
+						}
+						if ( response.data.orphaned_commentmeta !== undefined ) {
+							$( '#jharudar-orphaned-commentmeta-count' ).text( response.data.orphaned_commentmeta.toLocaleString() );
+						}
+						if ( response.data.orphaned_order_itemmeta !== undefined ) {
+							$( '#jharudar-orphaned-order-itemmeta-count' ).text( response.data.orphaned_order_itemmeta.toLocaleString() );
+						}
+						if ( response.data.orphaned_relationships !== undefined ) {
+							$( '#jharudar-orphaned-relationships-count' ).text( response.data.orphaned_relationships.toLocaleString() );
+						}
+						if ( response.data.duplicate_postmeta !== undefined ) {
+							$( '#jharudar-duplicate-postmeta-count' ).text( response.data.duplicate_postmeta.toLocaleString() );
+						}
+					}
+				},
+				error: function() {
+					// Stats will remain at default values on network error.
 				}
 			} );
 		},
@@ -2210,7 +2746,7 @@
 			var ids = this.getSelectedIds( '.jharudar-tax-rate-checkbox' );
 			
 			if ( ids.length === 0 ) {
-				alert( 'Please select at least one tax rate to export.' );
+				this.showAdminNotice( 'Please select at least one tax rate to export.', 'warning' );
 				return;
 			}
 
@@ -2522,17 +3058,17 @@
 				success: function( response ) {
 					self.hideProgress( 'jharudar-tax-rates-progress' );
 					if ( response.success ) {
-						alert( 'Deleted ' + response.data.deleted + ' tax rate(s).' );
+						self.showAdminNotice( 'Deleted ' + response.data.deleted + ' tax rate(s).', 'success' );
 						self.currentOffset = 0;
 						self.loadTaxRates();
 						self.loadStoreStats();
 					} else {
-						alert( response.data.message || 'Error deleting tax rates.' );
+						self.showAdminNotice( response.data.message || 'Error deleting tax rates.', 'error' );
 					}
 				},
 				error: function() {
 					self.hideProgress( 'jharudar-tax-rates-progress' );
-					alert( 'Error deleting tax rates. Please try again.' );
+					self.showAdminNotice( 'Error deleting tax rates. Please try again.', 'error' );
 				}
 			} );
 		},
@@ -2561,17 +3097,17 @@
 						if ( response.data.skipped > 0 ) {
 							msg += ' ' + response.data.skipped + ' skipped (protected zones).';
 						}
-						alert( msg );
+						self.showAdminNotice( msg, 'success' );
 						self.currentOffset = 0;
 						self.loadShippingZones();
 						self.loadStoreStats();
 					} else {
-						alert( response.data.message || 'Error deleting shipping zones.' );
+						self.showAdminNotice( response.data.message || 'Error deleting shipping zones.', 'error' );
 					}
 				},
 				error: function() {
 					self.hideProgress( 'jharudar-zones-progress' );
-					alert( 'Error deleting shipping zones. Please try again.' );
+					self.showAdminNotice( 'Error deleting shipping zones. Please try again.', 'error' );
 				}
 			} );
 		},
@@ -2596,17 +3132,96 @@
 				success: function( response ) {
 					self.hideProgress( 'jharudar-shipping-classes-progress' );
 					if ( response.success ) {
-						alert( 'Deleted ' + response.data.deleted + ' shipping class(es).' );
+						self.showAdminNotice( 'Deleted ' + response.data.deleted + ' shipping class(es).', 'success' );
 						self.currentOffset = 0;
 						self.loadShippingClasses();
 						self.loadStoreStats();
 					} else {
-						alert( response.data.message || 'Error deleting shipping classes.' );
+						self.showAdminNotice( response.data.message || 'Error deleting shipping classes.', 'error' );
 					}
 				},
 				error: function() {
 					self.hideProgress( 'jharudar-shipping-classes-progress' );
-					alert( 'Error deleting shipping classes. Please try again.' );
+					self.showAdminNotice( 'Error deleting shipping classes. Please try again.', 'error' );
+				}
+			} );
+		},
+
+		/**
+		 * Run a generic database action with progress feedback.
+		 *
+		 * @param {string} action The AJAX action name.
+		 * @param {Object} extraData Extra data to send with the request.
+		 */
+		runDatabaseAction: function( action, extraData ) {
+			var self = this;
+			var $progressWrapper = $( '#jharudar-database-progress' );
+			var $progressFill = $progressWrapper.find( '.jharudar-progress-fill' );
+			var $processed = $progressWrapper.find( '.processed' );
+
+			if ( ! $progressWrapper.length ) {
+				// Fallback if progress element is not present.
+				$progressWrapper = null;
+			}
+
+			if ( $progressWrapper ) {
+				$progressWrapper.addClass( 'active' );
+				$progressFill.css( 'width', '35%' );
+				$processed.text( '0' );
+			}
+
+			var data = {
+				action: action,
+				nonce: jharudar_admin.nonce
+			};
+
+			if ( extraData ) {
+				data = $.extend( data, extraData );
+			}
+
+			$.ajax( {
+				url: jharudar_admin.ajax_url,
+				type: 'POST',
+				data: data,
+				success: function( response ) {
+					if ( $progressWrapper ) {
+						$progressFill.css( 'width', '100%' );
+					}
+
+					if ( response.success ) {
+						if ( response.data && response.data.deleted !== undefined && $processed.length ) {
+							$processed.text( response.data.deleted );
+						}
+
+						if ( response.data && response.data.message ) {
+							self.showAdminNotice( response.data.message, 'success' );
+						}
+
+						// Refresh stats after any database action.
+						if ( $( '.jharudar-database-page' ).length ) {
+							self.loadDatabaseStats();
+						}
+					} else if ( response.data && response.data.message ) {
+						self.showAdminNotice( response.data.message, 'error' );
+					} else {
+						self.showAdminNotice( 'The operation could not be completed. Please try again.', 'error' );
+					}
+
+					if ( $progressWrapper ) {
+						setTimeout( function() {
+							$progressWrapper.removeClass( 'active' );
+							$progressFill.css( 'width', '0' );
+						}, 800 );
+					}
+				},
+				error: function() {
+					if ( $progressWrapper ) {
+						$progressWrapper.removeClass( 'active' );
+						$progressFill.css( 'width', '0' );
+						$processed.text( '0' );
+					}
+
+					self.showAdminNotice( 'The operation failed due to a network error. Please try again.', 'error' );
 				}
 			} );
 		},
@@ -2631,11 +3246,11 @@
 					if ( response.success && response.data.file_url ) {
 						window.location.href = response.data.file_url;
 					} else {
-						alert( response.data.message || 'Export failed.' );
+						self.showAdminNotice( response.data.message || 'Export failed.', 'error' );
 					}
 				},
 				error: function() {
-					alert( 'Export failed. Please try again.' );
+					self.showAdminNotice( 'Export failed. Please try again.', 'error' );
 				}
 			} );
 		},
@@ -2698,8 +3313,11 @@
 	// Make escapeHtml available in the global scope for use in table rendering.
 	var self = JharudarAdmin;
 
-	// Initialize on document ready.
+	// Initialize on document ready (only when localized data is available).
 	$( document ).ready( function() {
+		if ( typeof jharudar_admin === 'undefined' ) {
+			return;
+		}
 		JharudarAdmin.init();
 	} );
 

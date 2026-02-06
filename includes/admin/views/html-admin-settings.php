@@ -242,10 +242,10 @@ function jharudar_render_settings_page() {
 						</th>
 						<td>
 							<button type="button" class="button" id="jharudar-clear-cache">
-								<span class="dashicons dashicons-trash" style="margin-top: 3px;"></span>
+								<span class="dashicons dashicons-trash jharudar-icon-align"></span>
 								<?php esc_html_e( 'Clear Cache', 'jharudar-for-woocommerce' ); ?>
 							</button>
-							<span id="jharudar-cache-status" style="margin-left: 10px;"></span>
+							<span id="jharudar-cache-status" class="jharudar-status-inline"></span>
 							<p class="description">
 								<?php esc_html_e( 'Clears all cached statistics and counts. Use this if you notice outdated numbers after making changes. Cache automatically refreshes every 15 minutes.', 'jharudar-for-woocommerce' ); ?>
 							</p>

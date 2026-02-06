@@ -365,44 +365,7 @@
 	gap: 10px;
 }
 
-/* Confirmation Modal */
-.jharudar-modal-overlay {
-	display: none;
-	position: fixed;
-	top: 0;
-	left: 0;
-	right: 0;
-	bottom: 0;
-	background: rgba(0, 0, 0, 0.5);
-	z-index: 100000;
-	justify-content: center;
-	align-items: center;
-}
-
-.jharudar-modal-overlay.active {
-	display: flex;
-}
-
-.jharudar-modal {
-	background: #fff;
-	border-radius: 4px;
-	box-shadow: 0 3px 30px rgba(0, 0, 0, 0.2);
-	max-width: 500px;
-	width: 100%;
-	padding: 24px;
-}
-
-.jharudar-modal h3 {
-	margin-top: 0;
-	margin-bottom: 15px;
-	color: #d63638;
-}
-
-.jharudar-modal p {
-	margin-bottom: 20px;
-	color: #646970;
-}
-
+/* Legacy modal helpers (kept for older modal HTML patterns). */
 .jharudar-modal-input {
 	margin-bottom: 20px;
 }
@@ -838,6 +801,280 @@
 	}
 }
 
+/* -----------------------------------------------
+   Confirmation Modal (WordPress-style)
+----------------------------------------------- */
+.jharudar-modal-overlay {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: rgba(0, 0, 0, 0.7);
+	z-index: 100100;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	opacity: 0;
+	pointer-events: none;
+	visibility: hidden;
+	transition: opacity 0.15s ease, visibility 0s 0.15s;
+}
+
+.jharudar-modal-overlay.active {
+	opacity: 1;
+	pointer-events: auto;
+	visibility: visible;
+	transition: opacity 0.15s ease, visibility 0s 0s;
+}
+
+.jharudar-modal {
+	background: #fff;
+	border-radius: 4px;
+	box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3);
+	max-width: 520px;
+	width: 90%;
+	transform: translateY(-20px);
+	transition: transform 0.15s ease;
+	overflow: hidden;
+}
+
+.jharudar-modal-overlay.active .jharudar-modal {
+	transform: translateY(0);
+}
+
+.jharudar-modal-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 16px 20px;
+	border-bottom: 1px solid #dcdcde;
+	background: #f6f7f7;
+}
+
+.jharudar-modal-header h3 {
+	margin: 0;
+	font-size: 14px;
+	font-weight: 600;
+	color: #1d2327;
+	line-height: 1.4;
+}
+
+.jharudar-modal-close {
+	background: none;
+	border: none;
+	cursor: pointer;
+	color: #50575e;
+	font-size: 20px;
+	line-height: 1;
+	padding: 0;
+	width: 24px;
+	height: 24px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.jharudar-modal-close:hover {
+	color: #d63638;
+}
+
+.jharudar-modal-body {
+	padding: 20px;
+}
+
+.jharudar-modal-body p {
+	margin: 0 0 8px;
+	font-size: 13px;
+	line-height: 1.6;
+	color: #50575e;
+}
+
+.jharudar-modal-body p:last-child {
+	margin-bottom: 0;
+}
+
+.jharudar-modal-body .dashicons {
+	font-size: 16px;
+	width: 16px;
+	height: 16px;
+	vertical-align: text-bottom;
+	margin-right: 4px;
+}
+
+.jharudar-modal-footer {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 8px;
+	padding: 12px 20px;
+	border-top: 1px solid #dcdcde;
+	background: #f6f7f7;
+}
+
+.jharudar-modal-footer .button {
+	min-width: 80px;
+	text-align: center;
+}
+
+/* Destructive confirm button variant. */
+.jharudar-modal-footer .button-primary.jharudar-btn-destructive {
+	background: #d63638;
+	border-color: #d63638;
+}
+
+.jharudar-modal-footer .button-primary.jharudar-btn-destructive:hover,
+.jharudar-modal-footer .button-primary.jharudar-btn-destructive:focus {
+	background: #b32d2e;
+	border-color: #b32d2e;
+}
+
+/* -----------------------------------------------
+   Admin Notices (WordPress-style inline banners)
+----------------------------------------------- */
+.jharudar-admin-notice {
+	position: relative;
+	padding: 12px 40px 12px 16px;
+	margin: 15px 0;
+	border-left: 4px solid #00a32a;
+	background: #fff;
+	box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+	font-size: 13px;
+	line-height: 1.5;
+	animation: jharudarNoticeIn 0.25s ease;
+}
+
+@keyframes jharudarNoticeIn {
+	from {
+		opacity: 0;
+		transform: translateY(-8px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.jharudar-admin-notice.notice-success {
+	border-left-color: #00a32a;
+}
+
+.jharudar-admin-notice.notice-error {
+	border-left-color: #d63638;
+}
+
+.jharudar-admin-notice.notice-warning {
+	border-left-color: #dba617;
+}
+
+.jharudar-admin-notice.notice-info {
+	border-left-color: #72aee6;
+}
+
+.jharudar-admin-notice p {
+	margin: 0;
+	padding: 0;
+}
+
+.jharudar-admin-notice .notice-dismiss {
+	position: absolute;
+	top: 50%;
+	right: 8px;
+	transform: translateY(-50%);
+	padding: 8px;
+	background: none;
+	border: none;
+	cursor: pointer;
+	color: #787c82;
+	font-size: 13px;
+	line-height: 1;
+	text-decoration: none;
+}
+
+.jharudar-admin-notice .notice-dismiss:hover {
+	color: #d63638;
+}
+
+.jharudar-admin-notice .notice-dismiss::before {
+	content: "\f153";
+	font: normal 16px/1 dashicons;
+	speak: never;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+/* Auto-dismiss fade out. */
+.jharudar-admin-notice.jharudar-notice-dismissing {
+	opacity: 0;
+	transform: translateY(-8px);
+	transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+/* -----------------------------------------------
+   Database Module - Tools Grid & Table Analysis
+----------------------------------------------- */
+.jharudar-database-tools-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+	gap: 16px;
+	margin: 20px 0;
+}
+
+.jharudar-database-tool {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	padding: 16px;
+}
+
+.jharudar-database-tool h4 {
+	margin: 0 0 8px 0;
+	font-size: 14px;
+}
+
+.jharudar-database-tool .description {
+	margin: 0 0 12px 0;
+	font-size: 12px;
+	color: #646970;
+}
+
+.jharudar-database-tool .button {
+	white-space: nowrap;
+}
+
+/* Autoload toggle buttons. */
+.jharudar-toggle-autoload {
+	cursor: pointer;
+	font-size: 11px !important;
+	min-height: 24px !important;
+	line-height: 22px !important;
+	padding: 0 8px !important;
+}
+
+.jharudar-autoload-yes {
+	color: #00a32a !important;
+	border-color: #00a32a !important;
+}
+
+.jharudar-autoload-no {
+	color: #d63638 !important;
+	border-color: #d63638 !important;
+}
+
+/* Table analysis tables. */
+#jharudar-tables-list th,
+#jharudar-large-options-list th {
+	font-weight: 600;
+}
+
+#jharudar-table-analysis-results h4 {
+	font-size: 14px;
+	margin: 20px 0 10px 0;
+}
+
+/* -----------------------------------------------
+   Responsive
+----------------------------------------------- */
 @media screen and (max-width: 782px) {
 	.jharudar-dashboard-stats {
 		grid-template-columns: 1fr;
@@ -882,4 +1119,36 @@
 	.jharudar-images-grid {
 		grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
 	}
+
+	.jharudar-modal {
+		width: 95%;
+		max-width: none;
+	}
+}
+
+/* -----------------------------------------------
+   Utility classes (replaces inline styles)
+----------------------------------------------- */
+.jharudar-hidden {
+	display: none;
+}
+
+.jharudar-section-heading {
+	margin-top: 20px;
+}
+
+.jharudar-icon-align {
+	margin-top: 3px;
+}
+
+.jharudar-status-inline {
+	margin-left: 10px;
+}
+
+.jharudar-text-success {
+	color: #00a32a;
+}
+
+.jharudar-text-danger {
+	color: #d63638;
 }

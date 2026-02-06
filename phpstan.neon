@@ -1,21 +1,44 @@
+includes:
+    - vendor/szepeviktor/phpstan-wordpress/extension.neon
 parameters:
     level: 2
     paths:
         - includes
     scanDirectories:
         - includes
+    bootstrapFiles:
+        - vendor/php-stubs/wordpress-stubs/wordpress-stubs.php
+        - vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php
     ignoreErrors:
-        # WordPress core functions - no stubs available
-        - '#Function (__|_e|_x|_n|_nx|esc_html__|esc_html_e|esc_attr__|esc_attr_e|wp_parse_args|sanitize_text_field|sanitize_title|sanitize_key|absint|wp_unslash|check_ajax_referer|wp_send_json_success|wp_send_json_error|wp_upload_dir|add_action|wp_cache_get|wp_cache_set|wp_cache_delete|WC) not found#'
-        # WordPress constants
-        - '#Constant HOUR_IN_SECONDS not found#'
-        # WooCommerce classes
-        - '#(class|Call to static method .+ on an unknown class) (WC_Tax|WC_Cache_Helper|Jharudar_Exporter)#'
-        # Plugin functions
-        - '#Function (jharudar_sanitize_ids|jharudar_get_batch_size|jharudar_log_activity|jharudar_user_can_manage|as_schedule_single_action) not found#'
-        # Method not found in same class (false positive)
-        - '#Call to an undefined method Jharudar_Tax_Rates::get_stats#'
-        # Instantiated class not found
-        - '#Instantiated class Jharudar_Exporter not found#'
-        - '#Call to method .+ on an unknown class Jharudar_Exporter#'
-        - '#Call to an undefined method Jharudar_Exporter::.+#'
+        # Plugin's own constants defined in the main plugin file (not scanned).
+        - '#Constant JHARUDAR_(PLUGIN_BASENAME|PLUGIN_URL|PLUGIN_PATH|PLUGIN_DIR|VERSION) not found#'
+        # WordPress config constants.
+        - '#Constant DB_NAME not found#'
+        # Plugin functions defined in helper files loaded before classes.
+        -
+            identifier: function.notFound
+            message: '#Function (jharudar_sanitize_ids|jharudar_get_batch_size|jharudar_log_activity|jharudar_user_can_manage) not found#'
+            reportUnmatched: false
+        # WooCommerce classes & methods that may not be in stubs.
+        -
+            identifier: staticMethod.notFound
+            message: '#Call to an undefined static method WC_Cache_Helper::#'
+            reportUnmatched: false
+        -
+            message: '#(class|Call to static method .+ on an unknown class) .*Automattic\\\\WooCommerce\\\\#'
+            reportUnmatched: false
+        -
+            message: '#Call to static method .+ on an unknown class WC_Cache_Helper#'
+            reportUnmatched: false
+        # WC_Order_Item may not have get_product() in stubs.
+        - '#Call to an undefined method WC_Order_Item::get_product\(\)#'
+        # Cross-class method calls that PHPStan can't resolve without full loading.
+        - '#Call to an undefined method Jharudar_Exporter::#'
+        # Action Scheduler functions and classes.
+        - '#Function as_schedule_(single|recurring)_action not found#'
+        - '#(class|Access to constant .+ on an unknown class) ActionScheduler#'
+        # Logger return type (action callback returning int).
+        -
+            identifier: return.void
+            message: '#Action callback returns int but should not return anything#'
+            reportUnmatched: false

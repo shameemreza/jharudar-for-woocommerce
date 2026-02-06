@@ -532,7 +532,7 @@ class Jharudar_Tax_Rates {
 			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'jharudar-for-woocommerce' ) ) );
 		}
 
-		$stats = $this->get_stats();
+		$stats = self::get_statistics();
 		wp_send_json_success( $stats );
 	}
 }
