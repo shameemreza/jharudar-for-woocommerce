@@ -48,8 +48,8 @@ function jharudar_render_logs_page() {
 	$jharudar_offset   = ( $jharudar_page - 1 ) * $jharudar_per_page;
 
 	// Get logs.
-	$jharudar_logger = new Jharudar_Logger();
-	$jharudar_args   = array(
+	$jharudar_logger      = new Jharudar_Logger();
+	$jharudar_args        = array(
 		'action'      => $jharudar_filter_action,
 		'object_type' => $jharudar_filter_type,
 		'date_from'   => $jharudar_date_from,
@@ -58,8 +58,8 @@ function jharudar_render_logs_page() {
 		'offset'      => $jharudar_offset,
 		'order'       => 'DESC',
 	);
-	$jharudar_logs       = $jharudar_logger->get_logs( $jharudar_args );
-	$jharudar_total_logs = $jharudar_logger->get_count(
+	$jharudar_logs        = $jharudar_logger->get_logs( $jharudar_args );
+	$jharudar_total_logs  = $jharudar_logger->get_count(
 		array(
 			'action'      => $jharudar_filter_action,
 			'object_type' => $jharudar_filter_type,

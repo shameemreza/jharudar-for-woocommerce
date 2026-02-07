@@ -37,6 +37,34 @@ parameters:
         # Action Scheduler functions and classes.
         - '#Function as_schedule_(single|recurring)_action not found#'
         - '#(class|Access to constant .+ on an unknown class) ActionScheduler#'
+        # WooCommerce Subscriptions (not installed in dev environment).
+        -
+            message: '#(class|invalid type|Call to .+ on an unknown class) .*WC_Subscription#'
+            reportUnmatched: false
+        -
+            message: '#Function wcs_(get_subscription|get_subscriptions|get_subscription_status_name) not found#'
+            reportUnmatched: false
+        # WooCommerce Memberships (not installed in dev environment).
+        -
+            message: '#(class|invalid type|Call to .+ on an unknown class) .*WC_Memberships_User_Membership#'
+            reportUnmatched: false
+        -
+            message: '#Function wc_memberships_(get_user_membership|get_user_membership_status_name|get_membership_plans) not found#'
+            reportUnmatched: false
+        # WooCommerce Bookings (not installed in dev environment).
+        -
+            message: '#(class|invalid type|Call to .+ on an unknown class) .*WC_Booking#'
+            reportUnmatched: false
+        -
+            message: '#Function (get_wc_booking|wc_booking_get_status_label) not found#'
+            reportUnmatched: false
+        # WooCommerce Appointments (not installed in dev environment).
+        -
+            message: '#(class|invalid type|Call to .+ on an unknown class) .*WC_Appointment#'
+            reportUnmatched: false
+        -
+            message: '#Function (get_wc_appointment|wc_appointment_get_status_label) not found#'
+            reportUnmatched: false
         # Logger return type (action callback returning int).
         -
             identifier: return.void

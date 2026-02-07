@@ -129,9 +129,9 @@ class Jharudar_Admin {
 			'jharudar-admin',
 			'jharudar_admin',
 			array(
-				'ajax_url'            => admin_url( 'admin-ajax.php' ),
-				'nonce'               => wp_create_nonce( 'jharudar_admin_nonce' ),
-				'i18n'                => array(
+				'ajax_url'             => admin_url( 'admin-ajax.php' ),
+				'nonce'                => wp_create_nonce( 'jharudar_admin_nonce' ),
+				'i18n'                 => array(
 					'confirm_delete'    => __( 'Are you sure you want to delete the selected items? This action cannot be undone.', 'jharudar-for-woocommerce' ),
 					'processing'        => __( 'Processing...', 'jharudar-for-woocommerce' ),
 					'complete'          => __( 'Complete', 'jharudar-for-woocommerce' ),
@@ -283,24 +283,10 @@ class Jharudar_Admin {
 			),
 		);
 
-		// Add extension tabs if active.
-		if ( jharudar()->is_extension_active( 'subscriptions' ) ) {
-			$tabs['subscriptions'] = array(
-				'label' => __( 'Subscriptions', 'jharudar-for-woocommerce' ),
-			);
-		}
-
-		if ( jharudar()->is_extension_active( 'memberships' ) ) {
-			$tabs['memberships'] = array(
-				'label' => __( 'Memberships', 'jharudar-for-woocommerce' ),
-			);
-		}
-
-		if ( jharudar()->is_extension_active( 'bookings' ) ) {
-			$tabs['bookings'] = array(
-				'label' => __( 'Bookings', 'jharudar-for-woocommerce' ),
-			);
-		}
+		// Extensions tab (always visible; shows detection status or active sub-tabs).
+		$tabs['extensions'] = array(
+			'label' => __( 'Extensions', 'jharudar-for-woocommerce' ),
+		);
 
 		// Add remaining tabs.
 		$tabs['store']    = array(
@@ -353,7 +339,7 @@ class Jharudar_Admin {
 	 * @return void
 	 */
 	private function render_placeholder_content( $tab ) {
-		$tabs = $this->get_tabs();
+		$tabs  = $this->get_tabs();
 		$label = isset( $tabs[ $tab ]['label'] ) ? $tabs[ $tab ]['label'] : ucfirst( $tab );
 		?>
 		<div class="jharudar-placeholder">

@@ -154,25 +154,28 @@ $jharudar_stats = Jharudar_Customers::get_statistics();
 <!-- Delete Confirmation Modal -->
 <div class="jharudar-modal-overlay" id="jharudar-customer-delete-modal">
 	<div class="jharudar-modal">
-		<h3><?php esc_html_e( 'Confirm Customer Deletion', 'jharudar-for-woocommerce' ); ?></h3>
-		<p><?php esc_html_e( 'You are about to permanently delete the selected customer accounts. This action cannot be undone. Customer order history will be preserved but attributed to "Guest".', 'jharudar-for-woocommerce' ); ?></p>
-		<p class="jharudar-delete-summary"></p>
-		
-		<div class="jharudar-modal-options">
-			<label class="jharudar-checkbox-label">
-				<input type="checkbox" id="jharudar-confirm-customer-backup" />
-				<?php esc_html_e( 'I have exported a backup of these customers', 'jharudar-for-woocommerce' ); ?>
-			</label>
+		<div class="jharudar-modal-header">
+			<h3><?php esc_html_e( 'Confirm Customer Deletion', 'jharudar-for-woocommerce' ); ?></h3>
 		</div>
+		<div class="jharudar-modal-body">
+			<p><?php esc_html_e( 'You are about to permanently delete the selected customer accounts. This action cannot be undone. Customer order history will be preserved but attributed to "Guest".', 'jharudar-for-woocommerce' ); ?></p>
+			<p class="jharudar-delete-summary"></p>
 
-		<div class="jharudar-modal-input">
-			<label for="jharudar-confirm-customer-delete-input">
-				<?php esc_html_e( 'Type DELETE to confirm:', 'jharudar-for-woocommerce' ); ?>
-			</label>
-			<input type="text" id="jharudar-confirm-customer-delete-input" autocomplete="off" />
+			<div class="jharudar-modal-options">
+				<label class="jharudar-checkbox-label">
+					<input type="checkbox" id="jharudar-confirm-customer-backup" />
+					<?php esc_html_e( 'I have exported a backup of these customers', 'jharudar-for-woocommerce' ); ?>
+				</label>
+			</div>
+
+			<div class="jharudar-modal-input">
+				<label for="jharudar-confirm-customer-delete-input">
+					<?php esc_html_e( 'Type DELETE to confirm:', 'jharudar-for-woocommerce' ); ?>
+				</label>
+				<input type="text" id="jharudar-confirm-customer-delete-input" autocomplete="off" />
+			</div>
 		</div>
-
-		<div class="jharudar-modal-actions">
+		<div class="jharudar-modal-footer">
 			<button type="button" class="button" id="jharudar-cancel-customer-delete">
 				<?php esc_html_e( 'Cancel', 'jharudar-for-woocommerce' ); ?>
 			</button>
@@ -186,18 +189,21 @@ $jharudar_stats = Jharudar_Customers::get_statistics();
 <!-- Anonymize Confirmation Modal -->
 <div class="jharudar-modal-overlay" id="jharudar-customer-anonymize-modal">
 	<div class="jharudar-modal">
-		<h3><?php esc_html_e( 'Confirm Customer Anonymization', 'jharudar-for-woocommerce' ); ?></h3>
-		<p><?php esc_html_e( 'You are about to anonymize personal data for the selected customers. Names, addresses, emails, and phone numbers will be replaced with anonymized placeholders. Order history will be preserved.', 'jharudar-for-woocommerce' ); ?></p>
-		<p class="jharudar-anonymize-summary"></p>
-
-		<div class="jharudar-modal-input">
-			<label for="jharudar-confirm-customer-anonymize-input">
-				<?php esc_html_e( 'Type ANONYMIZE to confirm:', 'jharudar-for-woocommerce' ); ?>
-			</label>
-			<input type="text" id="jharudar-confirm-customer-anonymize-input" autocomplete="off" />
+		<div class="jharudar-modal-header">
+			<h3><?php esc_html_e( 'Confirm Customer Anonymization', 'jharudar-for-woocommerce' ); ?></h3>
 		</div>
+		<div class="jharudar-modal-body">
+			<p><?php esc_html_e( 'You are about to anonymize personal data for the selected customers. Names, addresses, emails, and phone numbers will be replaced with anonymized placeholders. Order history will be preserved.', 'jharudar-for-woocommerce' ); ?></p>
+			<p class="jharudar-anonymize-summary"></p>
 
-		<div class="jharudar-modal-actions">
+			<div class="jharudar-modal-input">
+				<label for="jharudar-confirm-customer-anonymize-input">
+					<?php esc_html_e( 'Type ANONYMIZE to confirm:', 'jharudar-for-woocommerce' ); ?>
+				</label>
+				<input type="text" id="jharudar-confirm-customer-anonymize-input" autocomplete="off" />
+			</div>
+		</div>
+		<div class="jharudar-modal-footer">
 			<button type="button" class="button" id="jharudar-cancel-customer-anonymize">
 				<?php esc_html_e( 'Cancel', 'jharudar-for-woocommerce' ); ?>
 			</button>

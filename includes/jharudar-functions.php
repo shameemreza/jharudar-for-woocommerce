@@ -11,15 +11,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Get the main Jharudar instance.
- *
- * This function is defined in class-jharudar.php but included here for reference.
- *
- * @since 0.0.1
- * @return Jharudar
- */
 if ( ! function_exists( 'jharudar' ) ) {
+	/**
+	 * Get the main Jharudar instance.
+	 *
+	 * This function is defined in class-jharudar.php but included here for reference.
+	 *
+	 * @since 0.0.1
+	 * @return Jharudar
+	 */
 	function jharudar() {
 		return Jharudar::instance();
 	}
@@ -29,12 +29,12 @@ if ( ! function_exists( 'jharudar' ) ) {
  * Get a Jharudar setting.
  *
  * @since 0.0.1
- * @param string $key     Setting key.
- * @param mixed  $default Default value.
+ * @param string $key           Setting key.
+ * @param mixed  $default_value Default value.
  * @return mixed Setting value.
  */
-function jharudar_get_setting( $key, $default = null ) {
-	return jharudar()->get_setting( $key, $default );
+function jharudar_get_setting( $key, $default_value = null ) {
+	return jharudar()->get_setting( $key, $default_value );
 }
 
 /**
@@ -113,9 +113,9 @@ function jharudar_format_date( $date, $format = '' ) {
 function jharudar_format_bytes( $bytes ) {
 	$units = array( 'B', 'KB', 'MB', 'GB', 'TB' );
 
-	$bytes = max( $bytes, 0 );
-	$pow   = floor( ( $bytes ? log( $bytes ) : 0 ) / log( 1024 ) );
-	$pow   = min( $pow, count( $units ) - 1 );
+	$bytes  = max( $bytes, 0 );
+	$pow    = floor( ( $bytes ? log( $bytes ) : 0 ) / log( 1024 ) );
+	$pow    = min( $pow, count( $units ) - 1 );
 	$bytes /= pow( 1024, $pow );
 
 	return round( $bytes, 2 ) . ' ' . $units[ $pow ];

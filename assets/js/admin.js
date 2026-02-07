@@ -34,6 +34,7 @@
 			this.bindTaxRateEvents();
 			this.bindShippingEvents();
 			this.bindDatabaseEvents();
+			this.bindExtensionEvents();
 			this.autoLoadData();
 		},
 
@@ -45,8 +46,8 @@
 
 			// Check which page we're on and auto-load data.
 			if ( $( '.jharudar-products-page' ).length && $( '#jharudar-products-results' ).length ) {
-				// Only auto-load on "All Products" sub-tab, not orphaned images.
-				if ( ! window.location.href.includes( 'subtab=orphaned' ) ) {
+				// Only auto-load on "All Products" sub-tab, not orphaned images or duplicates.
+				if ( ! window.location.href.includes( 'subtab=orphaned' ) && ! window.location.href.includes( 'subtab=duplicates' ) ) {
 					self.currentOffset = 0;
 					self.loadProducts();
 				}
@@ -103,6 +104,22 @@
 			if ( $( '.jharudar-database-page' ).length ) {
 				self.loadDatabaseStats();
 			}
+
+			// Load data for extensions page.
+			if ( $( '.jharudar-extensions-page' ).length ) {
+				self.currentOffset = 0;
+				if ( $( '#jharudar-subscriptions-results' ).length ) {
+					self.loadExtensionData( 'subscriptions' );
+				} else if ( $( '#jharudar-memberships-results' ).length ) {
+					self.loadExtensionData( 'memberships' );
+				} else if ( $( '#jharudar-bookings-results' ).length ) {
+					self.loadExtensionData( 'bookings' );
+				} else if ( $( '#jharudar-appointments-results' ).length ) {
+					self.loadExtensionData( 'appointments' );
+				} else if ( $( '#jharudar-vendors-results' ).length ) {
+					self.loadExtensionData( 'vendors' );
+				}
+			}
 		},
 
 		/**
@@ -151,6 +168,16 @@
 			$( '#jharudar-clear-cache' ).on( 'click', function() {
 				self.clearCache( $( this ) );
 			} );
+
+			// Empty Trash buttons (shared handler for all modules).
+			$( document ).on( 'click', '.jharudar-empty-trash-btn', function( e ) {
+				e.preventDefault();
+				var $btn   = $( this );
+				var module = $btn.data( 'module' );
+				var count  = $btn.data( 'count' );
+
+				self.emptyTrash( module, count, $btn );
+			} );
 		},
 
 		/**
@@ -185,6 +212,124 @@
 					$status.html( '<span class="jharudar-text-danger">Failed to clear cache.</span>' );
 				}
 			} );
+		},
+
+		/**
+		 * Empty Trash for a given module.
+		 *
+		 * Shows a confirmation modal, then fires an AJAX request to permanently
+		 * delete all trashed items for the specified module.
+		 *
+		 * @param {string} module Module name (products, orders, coupons, subscriptions, bookings, memberships, appointments).
+		 * @param {number} count  Number of trashed items.
+		 * @param {jQuery} $btn   The button element.
+		 */
+		emptyTrash: function( module, count, $btn ) {
+			var self         = this;
+			var singularMap  = {
+				products: 'product',
+				orders: 'order',
+				coupons: 'coupon',
+				subscriptions: 'subscription',
+				bookings: 'booking',
+				memberships: 'membership',
+				appointments: 'appointment'
+			};
+			var singular = singularMap[ module ] || module.replace( /s$/, '' );
+			var label    = count === 1 ? singular : module;
+
+			this.showConfirmModal( {
+				title: 'Empty Trash',
+				message: 'This will <strong>permanently delete</strong> ' + count + ' trashed ' + label + '. This action cannot be undone.',
+				confirmText: 'Delete Permanently',
+				cancelText: 'Cancel',
+				destructive: true
+			} ).then( function() {
+				var originalHtml = $btn.html();
+				$btn.prop( 'disabled', true ).html( '<span class="dashicons dashicons-update spin jharudar-icon-align"></span> Emptying...' );
+
+				$.ajax( {
+					url: jharudar_admin.ajax_url,
+					type: 'POST',
+					data: {
+						action: 'jharudar_empty_trash_' + module,
+						nonce: jharudar_admin.nonce
+					},
+					success: function( response ) {
+						if ( response.success ) {
+							var deleted = response.data.deleted || 0;
+							self.showAdminNotice( deleted + ' trashed ' + label + ' permanently deleted.', 'success' );
+
+							// Hide the button since trash is now empty.
+							$btn.fadeOut( 200, function() {
+								$btn.remove();
+							} );
+
+							// Reload the current results table if applicable.
+							self.reloadModuleData( module );
+						} else {
+							$btn.prop( 'disabled', false ).html( originalHtml );
+							self.showAdminNotice( response.data && response.data.message ? response.data.message : 'An error occurred.', 'error' );
+						}
+					},
+					error: function() {
+						$btn.prop( 'disabled', false ).html( originalHtml );
+						self.showAdminNotice( 'Failed to empty trash. Please try again.', 'error' );
+					}
+				} );
+			} );
+		},
+
+		/**
+		 * Reload module data after empty trash.
+		 *
+		 * @param {string} module Module name.
+		 */
+		reloadModuleData: function( module ) {
+			switch ( module ) {
+				case 'products':
+					if ( $( '#jharudar-products-results' ).length ) {
+						this.currentOffset = 0;
+						this.loadProducts();
+					}
+					break;
+				case 'orders':
+					if ( $( '#jharudar-orders-results' ).length ) {
+						this.currentOffset = 0;
+						this.loadOrders();
+					}
+					break;
+				case 'coupons':
+					if ( $( '#jharudar-coupons-results' ).length ) {
+						this.currentOffset = 0;
+						this.loadCoupons();
+					}
+					break;
+				case 'subscriptions':
+					if ( $( '#jharudar-subscriptions-results' ).length ) {
+						this.currentOffset = 0;
+						this.loadExtensionData( 'subscriptions' );
+					}
+					break;
+				case 'bookings':
+					if ( $( '#jharudar-bookings-results' ).length ) {
+						this.currentOffset = 0;
+						this.loadExtensionData( 'bookings' );
+					}
+					break;
+				case 'memberships':
+					if ( $( '#jharudar-memberships-results' ).length ) {
+						this.currentOffset = 0;
+						this.loadExtensionData( 'memberships' );
+					}
+					break;
+				case 'appointments':
+					if ( $( '#jharudar-appointments-results' ).length ) {
+						this.currentOffset = 0;
+						this.loadExtensionData( 'appointments' );
+					}
+					break;
+			}
 		},
 
 		/**
@@ -365,18 +510,14 @@
 				self.showProductDeleteModal();
 			} );
 
-			// Confirm delete input.
-			$( '#jharudar-confirm-delete-input' ).on( 'input', function() {
-				var value = $( this ).val().trim().toUpperCase();
-				var backupChecked = $( '#jharudar-confirm-backup' ).is( ':checked' );
-				$( '#jharudar-confirm-delete' ).prop( 'disabled', value !== 'DELETE' || ! backupChecked );
-			} );
+		// Confirm delete input.
+		$( '#jharudar-confirm-delete-input' ).on( 'input', function() {
+			self.validateProductModalConfirm();
+		} );
 
-			$( '#jharudar-confirm-backup' ).on( 'change', function() {
-				var value = $( '#jharudar-confirm-delete-input' ).val().trim().toUpperCase();
-				var backupChecked = $( this ).is( ':checked' );
-				$( '#jharudar-confirm-delete' ).prop( 'disabled', value !== 'DELETE' || ! backupChecked );
-			} );
+		$( '#jharudar-confirm-backup' ).on( 'change', function() {
+			self.validateProductModalConfirm();
+		} );
 
 			// Cancel delete.
 			$( '#jharudar-cancel-delete' ).on( 'click', function() {
@@ -411,6 +552,46 @@
 			$( '#jharudar-delete-orphaned-images' ).on( 'click', function() {
 				self.deleteOrphanedImages();
 			} );
+
+		// Duplicate products.
+		$( '#jharudar-scan-duplicates' ).on( 'click', function() {
+			self.scanDuplicateProducts();
+		} );
+
+		$( '#jharudar-delete-duplicates' ).on( 'click', function() {
+			self.showDuplicateDeleteModal();
+		} );
+
+		$( '#jharudar-export-duplicates' ).on( 'click', function() {
+			self.exportDuplicateProducts();
+		} );
+
+		// Re-filter on status change.
+		$( '#jharudar-duplicate-status-filter' ).on( 'change', function() {
+			self.filterDuplicateResults();
+		} );
+
+		// Duplicate delete modal confirmation.
+		$( '#jharudar-confirm-dup-delete-input' ).on( 'input', function() {
+			self.validateDupModalConfirm();
+		} );
+
+		$( '#jharudar-confirm-dup-backup' ).on( 'change', function() {
+			self.validateDupModalConfirm();
+		} );
+
+		$( '#jharudar-cancel-dup-delete' ).on( 'click', function() {
+			self.closeModal( $( '#jharudar-dup-delete-modal' ) );
+		} );
+
+		$( '#jharudar-confirm-dup-delete' ).on( 'click', function() {
+			self.deleteDuplicateProducts();
+		} );
+
+		// Selection events for duplicate checkboxes (delegated).
+		$( document ).on( 'change', '.jharudar-dup-delete-checkbox', function() {
+			self.updateDuplicateActionState();
+		} );
 		},
 
 		/**
@@ -459,18 +640,14 @@
 				self.showOrderDeleteModal();
 			} );
 
-			// Order delete confirmation.
-			$( '#jharudar-confirm-order-delete-input' ).on( 'input', function() {
-				var value = $( this ).val().trim().toUpperCase();
-				var backupChecked = $( '#jharudar-confirm-order-backup' ).is( ':checked' );
-				$( '#jharudar-confirm-order-delete' ).prop( 'disabled', value !== 'DELETE' || ! backupChecked );
-			} );
+		// Order delete confirmation.
+		$( '#jharudar-confirm-order-delete-input' ).on( 'input', function() {
+			self.validateOrderModalConfirm();
+		} );
 
-			$( '#jharudar-confirm-order-backup' ).on( 'change', function() {
-				var value = $( '#jharudar-confirm-order-delete-input' ).val().trim().toUpperCase();
-				var backupChecked = $( this ).is( ':checked' );
-				$( '#jharudar-confirm-order-delete' ).prop( 'disabled', value !== 'DELETE' || ! backupChecked );
-			} );
+		$( '#jharudar-confirm-order-backup' ).on( 'change', function() {
+			self.validateOrderModalConfirm();
+		} );
 
 			$( '#jharudar-cancel-order-delete' ).on( 'click', function() {
 				self.closeModal( $( '#jharudar-order-delete-modal' ) );
@@ -746,58 +923,122 @@
 		},
 
 		/**
-		 * Show product delete modal.
+		 * Show product delete modal with dependency check.
 		 */
-		showProductDeleteModal: function() {
-			var count = $( '.jharudar-product-checkbox:checked' ).length;
-			$( '#jharudar-delete-modal .jharudar-delete-summary' ).text( 'You have selected ' + count + ' product(s) for deletion.' );
-			$( '#jharudar-confirm-delete-input' ).val( '' );
-			$( '#jharudar-confirm-backup' ).prop( 'checked', false );
-			$( '#jharudar-confirm-delete' ).prop( 'disabled', true );
-			$( '#jharudar-delete-modal' ).addClass( 'active' );
+	showProductDeleteModal: function() {
+		var self   = this;
+		var count  = $( '.jharudar-product-checkbox:checked' ).length;
+		var ids    = this.getSelectedIds( '.jharudar-product-checkbox' );
+		var action = $( '#jharudar-product-delete-action' ).val() || 'trash';
+
+		var actionLabels = { 'delete': 'permanently deleted', 'trash': 'moved to trash' };
+		var actionLabel  = actionLabels[ action ] || 'processed';
+
+		// Update modal title and description based on action.
+		if ( action === 'delete' ) {
+			$( '#jharudar-product-modal-title' ).text( 'Confirm Permanent Deletion' );
+			$( '#jharudar-product-modal-description' ).text( 'You are about to permanently delete the selected products. This action cannot be undone.' );
+			$( '#jharudar-product-confirm-input-wrapper' ).show();
+			$( '#jharudar-confirm-delete' ).addClass( 'button-danger' ).text( 'Delete Permanently' );
+		} else {
+			$( '#jharudar-product-modal-title' ).text( 'Confirm Move to Trash' );
+			$( '#jharudar-product-modal-description' ).text( 'The selected products will be moved to trash. You can restore them later if needed.' );
+			$( '#jharudar-product-confirm-input-wrapper' ).hide();
+			$( '#jharudar-confirm-delete' ).removeClass( 'button-danger' ).text( 'Move to Trash' );
+		}
+
+		$( '#jharudar-delete-modal .jharudar-delete-summary' ).text( count + ' product(s) will be ' + actionLabel + '.' );
+		$( '#jharudar-confirm-delete-input' ).val( '' );
+		$( '#jharudar-confirm-backup' ).prop( 'checked', false );
+		$( '#jharudar-confirm-delete' ).prop( 'disabled', true );
+
+		// Reset dependency warnings.
+		$( '#jharudar-dependency-warnings' ).hide().find( '.jharudar-warning-list' ).empty();
+
+		// Show modal immediately.
+		$( '#jharudar-delete-modal' ).addClass( 'active' );
+
+		// Fetch dependency warnings in the background.
+		$.ajax( {
+			url:  jharudar_admin.ajax_url,
+			type: 'POST',
+			data: {
+				action:      'jharudar_check_product_dependencies',
+				nonce:       jharudar_admin.nonce,
+				product_ids: ids
+			},
+			success: function( response ) {
+				if ( response.success && response.data.warnings && response.data.warnings.length > 0 ) {
+					var $list = $( '#jharudar-dependency-warnings .jharudar-warning-list' );
+					$.each( response.data.warnings, function( i, warning ) {
+						$list.append( '<li>' + self.escapeHtml( warning ) + '</li>' );
+					} );
+					$( '#jharudar-dependency-warnings' ).show();
+				}
+			}
+		} );
+	},
+
+		/**
+		 * Validate the product delete modal confirm button state.
+		 */
+		validateProductModalConfirm: function() {
+			var action        = $( '#jharudar-product-delete-action' ).val() || 'trash';
+			var backupChecked = $( '#jharudar-confirm-backup' ).is( ':checked' );
+
+			if ( action === 'delete' ) {
+				var value = $( '#jharudar-confirm-delete-input' ).val().trim().toUpperCase();
+				$( '#jharudar-confirm-delete' ).prop( 'disabled', value !== 'DELETE' || ! backupChecked );
+			} else {
+				$( '#jharudar-confirm-delete' ).prop( 'disabled', ! backupChecked );
+			}
 		},
 
 		/**
 		 * Delete products.
 		 */
-		deleteProducts: function() {
-			var self = this;
-			var ids = this.getSelectedIds( '.jharudar-product-checkbox' );
-			var deleteImages = $( '#jharudar-delete-images' ).is( ':checked' );
+	deleteProducts: function() {
+		var self         = this;
+		var ids          = this.getSelectedIds( '.jharudar-product-checkbox' );
+		var deleteImages = $( '#jharudar-delete-images' ).is( ':checked' );
+		var action       = $( '#jharudar-product-delete-action' ).val() || 'trash';
 
-			this.closeModal( $( '#jharudar-delete-modal' ) );
-			this.showProgress( 'jharudar-products-progress' );
+		var actionLabels = { 'delete': 'Deleted', 'trash': 'Trashed' };
 
-			$.ajax( {
-				url: jharudar_admin.ajax_url,
-				type: 'POST',
-				data: {
-					action: 'jharudar_delete_products',
-					nonce: jharudar_admin.nonce,
-					product_ids: ids,
-					delete_action: 'delete',
-					delete_images: deleteImages ? 'true' : 'false'
-				},
-				success: function( response ) {
-					self.hideProgress( 'jharudar-products-progress' );
-					if ( response.success ) {
-						var msg = 'Deleted ' + response.data.deleted + ' product(s).';
-						if ( response.data.failed > 0 ) {
-							msg += ' ' + response.data.failed + ' failed.';
-						}
-						self.showAdminNotice( msg, 'success' );
-						self.currentOffset = 0;
-						self.loadProducts();
-					} else {
-						self.showAdminNotice( response.data.message || 'Error deleting products.', 'error' );
+		this.closeModal( $( '#jharudar-delete-modal' ) );
+		this.showProgress( 'jharudar-products-progress' );
+
+		$.ajax( {
+			url: jharudar_admin.ajax_url,
+			type: 'POST',
+			data: {
+				action: 'jharudar_delete_products',
+				nonce: jharudar_admin.nonce,
+				product_ids: ids,
+				delete_action: action,
+				delete_images: deleteImages ? 'true' : 'false'
+			},
+			success: function( response ) {
+				self.hideProgress( 'jharudar-products-progress' );
+				if ( response.success ) {
+					var label = actionLabels[ action ] || 'Processed';
+					var msg = label + ' ' + response.data.deleted + ' product(s).';
+					if ( response.data.failed > 0 ) {
+						msg += ' ' + response.data.failed + ' failed.';
 					}
-				},
-				error: function() {
-					self.hideProgress( 'jharudar-products-progress' );
-					self.showAdminNotice( 'Error deleting products. Please try again.', 'error' );
+					self.showAdminNotice( msg, 'success' );
+					self.currentOffset = 0;
+					self.loadProducts();
+				} else {
+					self.showAdminNotice( response.data.message || 'Error processing products.', 'error' );
 				}
-			} );
-		},
+			},
+			error: function() {
+				self.hideProgress( 'jharudar-products-progress' );
+				self.showAdminNotice( 'Error processing products. Please try again.', 'error' );
+			}
+		} );
+	},
 
 		/**
 		 * Scan orphaned images.
@@ -1049,19 +1290,51 @@
 		/**
 		 * Show order delete modal.
 		 */
-		showOrderDeleteModal: function() {
-			var count = $( '.jharudar-order-checkbox:checked' ).length;
-			$( '#jharudar-order-delete-modal .jharudar-delete-summary' ).text( 'You have selected ' + count + ' order(s) for deletion.' );
-			$( '#jharudar-confirm-order-delete-input' ).val( '' );
-			$( '#jharudar-confirm-order-backup' ).prop( 'checked', false );
-			$( '#jharudar-confirm-order-delete' ).prop( 'disabled', true );
-			$( '#jharudar-order-delete-modal' ).addClass( 'active' );
-		},
+	showOrderDeleteModal: function() {
+		var count  = $( '.jharudar-order-checkbox:checked' ).length;
+		var action = $( '#jharudar-order-delete-action' ).val() || 'trash';
 
-		/**
-		 * Show order anonymize modal.
-		 */
-		showOrderAnonymizeModal: function() {
+		var actionLabels = { 'delete': 'permanently deleted', 'trash': 'moved to trash' };
+		var actionLabel  = actionLabels[ action ] || 'processed';
+
+		if ( action === 'delete' ) {
+			$( '#jharudar-order-modal-title' ).text( 'Confirm Permanent Deletion' );
+			$( '#jharudar-order-modal-description' ).text( 'You are about to permanently delete the selected orders. This action cannot be undone. All order data, items, and notes will be removed.' );
+			$( '#jharudar-order-confirm-input-wrapper' ).show();
+			$( '#jharudar-confirm-order-delete' ).addClass( 'button-danger' ).text( 'Delete Permanently' );
+		} else {
+			$( '#jharudar-order-modal-title' ).text( 'Confirm Move to Trash' );
+			$( '#jharudar-order-modal-description' ).text( 'The selected orders will be moved to trash. You can restore them later if needed.' );
+			$( '#jharudar-order-confirm-input-wrapper' ).hide();
+			$( '#jharudar-confirm-order-delete' ).removeClass( 'button-danger' ).text( 'Move to Trash' );
+		}
+
+		$( '#jharudar-order-delete-modal .jharudar-delete-summary' ).text( count + ' order(s) will be ' + actionLabel + '.' );
+		$( '#jharudar-confirm-order-delete-input' ).val( '' );
+		$( '#jharudar-confirm-order-backup' ).prop( 'checked', false );
+		$( '#jharudar-confirm-order-delete' ).prop( 'disabled', true );
+		$( '#jharudar-order-delete-modal' ).addClass( 'active' );
+	},
+
+	/**
+	 * Validate order delete modal confirm button state.
+	 */
+	validateOrderModalConfirm: function() {
+		var action        = $( '#jharudar-order-delete-action' ).val() || 'trash';
+		var backupChecked = $( '#jharudar-confirm-order-backup' ).is( ':checked' );
+
+		if ( action === 'delete' ) {
+			var value = $( '#jharudar-confirm-order-delete-input' ).val().trim().toUpperCase();
+			$( '#jharudar-confirm-order-delete' ).prop( 'disabled', value !== 'DELETE' || ! backupChecked );
+		} else {
+			$( '#jharudar-confirm-order-delete' ).prop( 'disabled', ! backupChecked );
+		}
+	},
+
+	/**
+	 * Show order anonymize modal.
+	 */
+	showOrderAnonymizeModal: function() {
 			var count = $( '.jharudar-order-checkbox:checked' ).length;
 			$( '#jharudar-order-anonymize-modal .jharudar-anonymize-summary' ).text( 'You have selected ' + count + ' order(s) for anonymization.' );
 			$( '#jharudar-confirm-anonymize-input' ).val( '' );
@@ -1072,38 +1345,42 @@
 		/**
 		 * Delete orders.
 		 */
-		deleteOrders: function() {
-			var self = this;
-			var ids = this.getSelectedIds( '.jharudar-order-checkbox' );
+	deleteOrders: function() {
+		var self   = this;
+		var ids    = this.getSelectedIds( '.jharudar-order-checkbox' );
+		var action = $( '#jharudar-order-delete-action' ).val() || 'trash';
 
-			this.closeModal( $( '#jharudar-order-delete-modal' ) );
-			this.showProgress( 'jharudar-orders-progress' );
+		var actionLabels = { 'delete': 'Deleted', 'trash': 'Trashed' };
 
-			$.ajax( {
-				url: jharudar_admin.ajax_url,
-				type: 'POST',
-				data: {
-					action: 'jharudar_delete_orders',
-					nonce: jharudar_admin.nonce,
-					order_ids: ids,
-					delete_action: 'delete'
-				},
-				success: function( response ) {
-					self.hideProgress( 'jharudar-orders-progress' );
-					if ( response.success ) {
-						self.showAdminNotice( 'Deleted ' + response.data.deleted + ' order(s).', 'success' );
-						self.currentOffset = 0;
-						self.loadOrders();
-					} else {
-						self.showAdminNotice( response.data.message || 'Error deleting orders.', 'error' );
-					}
-				},
-				error: function() {
-					self.hideProgress( 'jharudar-orders-progress' );
-					self.showAdminNotice( 'Error deleting orders. Please try again.', 'error' );
+		this.closeModal( $( '#jharudar-order-delete-modal' ) );
+		this.showProgress( 'jharudar-orders-progress' );
+
+		$.ajax( {
+			url: jharudar_admin.ajax_url,
+			type: 'POST',
+			data: {
+				action: 'jharudar_delete_orders',
+				nonce: jharudar_admin.nonce,
+				order_ids: ids,
+				delete_action: action
+			},
+			success: function( response ) {
+				self.hideProgress( 'jharudar-orders-progress' );
+				if ( response.success ) {
+					var label = actionLabels[ action ] || 'Processed';
+					self.showAdminNotice( label + ' ' + response.data.deleted + ' order(s).', 'success' );
+					self.currentOffset = 0;
+					self.loadOrders();
+				} else {
+					self.showAdminNotice( response.data.message || 'Error processing orders.', 'error' );
 				}
-			} );
-		},
+			},
+			error: function() {
+				self.hideProgress( 'jharudar-orders-progress' );
+				self.showAdminNotice( 'Error processing orders. Please try again.', 'error' );
+			}
+		} );
+	},
 
 		/**
 		 * Anonymize orders.
@@ -1420,18 +1697,14 @@
 				self.showCouponDeleteModal();
 			} );
 
-			// Coupon delete confirmation.
-			$( '#jharudar-confirm-coupon-delete-input' ).on( 'input', function() {
-				var value = $( this ).val().trim().toUpperCase();
-				var backupChecked = $( '#jharudar-confirm-coupon-backup' ).is( ':checked' );
-				$( '#jharudar-confirm-coupon-delete' ).prop( 'disabled', value !== 'DELETE' || ! backupChecked );
-			} );
+		// Coupon delete confirmation.
+		$( '#jharudar-confirm-coupon-delete-input' ).on( 'input', function() {
+			self.validateCouponModalConfirm();
+		} );
 
-			$( '#jharudar-confirm-coupon-backup' ).on( 'change', function() {
-				var value = $( '#jharudar-confirm-coupon-delete-input' ).val().trim().toUpperCase();
-				var backupChecked = $( this ).is( ':checked' );
-				$( '#jharudar-confirm-coupon-delete' ).prop( 'disabled', value !== 'DELETE' || ! backupChecked );
-			} );
+		$( '#jharudar-confirm-coupon-backup' ).on( 'change', function() {
+			self.validateCouponModalConfirm();
+		} );
 
 			$( '#jharudar-cancel-coupon-delete' ).on( 'click', function() {
 				self.closeModal( $( '#jharudar-coupon-delete-modal' ) );
@@ -1617,50 +1890,87 @@
 		/**
 		 * Show coupon delete modal.
 		 */
-		showCouponDeleteModal: function() {
-			var count = $( '.jharudar-coupon-checkbox:checked' ).length;
-			$( '#jharudar-coupon-delete-modal .jharudar-delete-summary' ).text( 'You have selected ' + count + ' coupon(s) for deletion.' );
-			$( '#jharudar-confirm-coupon-delete-input' ).val( '' );
-			$( '#jharudar-confirm-coupon-backup' ).prop( 'checked', false );
-			$( '#jharudar-confirm-coupon-delete' ).prop( 'disabled', true );
-			$( '#jharudar-coupon-delete-modal' ).addClass( 'active' );
-		},
+	showCouponDeleteModal: function() {
+		var count  = $( '.jharudar-coupon-checkbox:checked' ).length;
+		var action = $( '#jharudar-coupon-delete-action' ).val() || 'trash';
 
-		/**
-		 * Delete coupons.
-		 */
-		deleteCoupons: function() {
-			var self = this;
-			var ids = this.getSelectedIds( '.jharudar-coupon-checkbox' );
+		var actionLabels = { 'delete': 'permanently deleted', 'trash': 'moved to trash' };
+		var actionLabel  = actionLabels[ action ] || 'processed';
 
-			this.closeModal( $( '#jharudar-coupon-delete-modal' ) );
-			this.showProgress( 'jharudar-coupons-progress' );
+		if ( action === 'delete' ) {
+			$( '#jharudar-coupon-modal-title' ).text( 'Confirm Permanent Deletion' );
+			$( '#jharudar-coupon-modal-description' ).text( 'You are about to permanently delete the selected coupons. This action cannot be undone.' );
+			$( '#jharudar-coupon-confirm-input-wrapper' ).show();
+			$( '#jharudar-confirm-coupon-delete' ).addClass( 'button-danger' ).text( 'Delete Permanently' );
+		} else {
+			$( '#jharudar-coupon-modal-title' ).text( 'Confirm Move to Trash' );
+			$( '#jharudar-coupon-modal-description' ).text( 'The selected coupons will be moved to trash. You can restore them later if needed.' );
+			$( '#jharudar-coupon-confirm-input-wrapper' ).hide();
+			$( '#jharudar-confirm-coupon-delete' ).removeClass( 'button-danger' ).text( 'Move to Trash' );
+		}
 
-			$.ajax( {
-				url: jharudar_admin.ajax_url,
-				type: 'POST',
-				data: {
-					action: 'jharudar_delete_coupons',
-					nonce: jharudar_admin.nonce,
-					coupon_ids: ids
-				},
-				success: function( response ) {
-					self.hideProgress( 'jharudar-coupons-progress' );
-					if ( response.success ) {
-						self.showAdminNotice( 'Deleted ' + response.data.deleted + ' coupon(s).', 'success' );
-						self.currentOffset = 0;
-						self.loadCoupons();
-						self.loadCouponStats();
-					} else {
-						self.showAdminNotice( response.data.message || 'Error deleting coupons.', 'error' );
-					}
-				},
-				error: function() {
-					self.hideProgress( 'jharudar-coupons-progress' );
-					self.showAdminNotice( 'Error deleting coupons. Please try again.', 'error' );
+		$( '#jharudar-coupon-delete-modal .jharudar-delete-summary' ).text( count + ' coupon(s) will be ' + actionLabel + '.' );
+		$( '#jharudar-confirm-coupon-delete-input' ).val( '' );
+		$( '#jharudar-confirm-coupon-backup' ).prop( 'checked', false );
+		$( '#jharudar-confirm-coupon-delete' ).prop( 'disabled', true );
+		$( '#jharudar-coupon-delete-modal' ).addClass( 'active' );
+	},
+
+	/**
+	 * Validate coupon delete modal confirm button state.
+	 */
+	validateCouponModalConfirm: function() {
+		var action        = $( '#jharudar-coupon-delete-action' ).val() || 'trash';
+		var backupChecked = $( '#jharudar-confirm-coupon-backup' ).is( ':checked' );
+
+		if ( action === 'delete' ) {
+			var value = $( '#jharudar-confirm-coupon-delete-input' ).val().trim().toUpperCase();
+			$( '#jharudar-confirm-coupon-delete' ).prop( 'disabled', value !== 'DELETE' || ! backupChecked );
+		} else {
+			$( '#jharudar-confirm-coupon-delete' ).prop( 'disabled', ! backupChecked );
+		}
+	},
+
+	/**
+	 * Delete coupons.
+	 */
+	deleteCoupons: function() {
+		var self   = this;
+		var ids    = this.getSelectedIds( '.jharudar-coupon-checkbox' );
+		var action = $( '#jharudar-coupon-delete-action' ).val() || 'trash';
+
+		var actionLabels = { 'delete': 'Deleted', 'trash': 'Trashed' };
+
+		this.closeModal( $( '#jharudar-coupon-delete-modal' ) );
+		this.showProgress( 'jharudar-coupons-progress' );
+
+		$.ajax( {
+			url: jharudar_admin.ajax_url,
+			type: 'POST',
+			data: {
+				action: 'jharudar_delete_coupons',
+				nonce: jharudar_admin.nonce,
+				coupon_ids: ids,
+				delete_action: action
+			},
+			success: function( response ) {
+				self.hideProgress( 'jharudar-coupons-progress' );
+				if ( response.success ) {
+					var label = actionLabels[ action ] || 'Processed';
+					self.showAdminNotice( label + ' ' + response.data.deleted + ' coupon(s).', 'success' );
+					self.currentOffset = 0;
+					self.loadCoupons();
+					self.loadCouponStats();
+				} else {
+					self.showAdminNotice( response.data.message || 'Error processing coupons.', 'error' );
 				}
-			} );
-		},
+			},
+			error: function() {
+				self.hideProgress( 'jharudar-coupons-progress' );
+				self.showAdminNotice( 'Error processing coupons. Please try again.', 'error' );
+			}
+		} );
+	},
 
 		/**
 		 * Bind taxonomy module events.
@@ -3298,6 +3608,936 @@
 				'<p>' + message + '</p>' +
 				'</div>';
 		},
+
+		/* ========================================================
+		 * Extension Modules (Subscriptions, Memberships, Bookings,
+		 * Appointments, Product Vendors)
+		 * ======================================================== */
+
+		/**
+		 * Bind extension module events.
+		 */
+		bindExtensionEvents: function() {
+			var self = this;
+
+			if ( ! $( '.jharudar-extensions-page' ).length ) {
+				return;
+			}
+
+			/* --- Subscriptions --- */
+			$( '#jharudar-filter-subscriptions' ).on( 'click', function() {
+				self.currentOffset = 0;
+				self.loadExtensionData( 'subscriptions' );
+			} );
+			$( '#jharudar-reset-sub-filters' ).on( 'click', function() {
+				$( '#jharudar-filter-sub-status' ).val( '' ).trigger( 'change' );
+				$( '#jharudar-filter-sub-date-after, #jharudar-filter-sub-date-before' ).val( '' );
+				self.currentOffset = 0;
+				self.loadExtensionData( 'subscriptions' );
+			} );
+			$( '#jharudar-select-all-subscriptions' ).on( 'change', function() {
+				$( '.jharudar-subscription-checkbox' ).prop( 'checked', $( this ).is( ':checked' ) );
+				self.updateExtActionState( 'subscriptions' );
+			} );
+			$( document ).on( 'change', '.jharudar-subscription-checkbox', function() { self.updateExtActionState( 'subscriptions' ); } );
+			$( '#jharudar-export-subscriptions' ).on( 'click', function() { self.exportExtension( 'subscriptions' ); } );
+			$( '#jharudar-delete-subscriptions' ).on( 'click', function() { self.showExtDeleteModal( 'subscriptions' ); } );
+			$( '#jharudar-load-more-subscriptions' ).on( 'click', function() { self.loadExtensionData( 'subscriptions', true ); } );
+
+			/* --- Memberships --- */
+			$( '#jharudar-filter-memberships' ).on( 'click', function() {
+				self.currentOffset = 0;
+				self.loadExtensionData( 'memberships' );
+			} );
+			$( '#jharudar-reset-mem-filters' ).on( 'click', function() {
+				$( '#jharudar-filter-mem-status, #jharudar-filter-mem-plan' ).val( '' ).trigger( 'change' );
+				$( '#jharudar-filter-mem-date-after, #jharudar-filter-mem-date-before' ).val( '' );
+				self.currentOffset = 0;
+				self.loadExtensionData( 'memberships' );
+			} );
+			$( '#jharudar-select-all-memberships' ).on( 'change', function() {
+				$( '.jharudar-membership-checkbox' ).prop( 'checked', $( this ).is( ':checked' ) );
+				self.updateExtActionState( 'memberships' );
+			} );
+			$( document ).on( 'change', '.jharudar-membership-checkbox', function() { self.updateExtActionState( 'memberships' ); } );
+			$( '#jharudar-export-memberships' ).on( 'click', function() { self.exportExtension( 'memberships' ); } );
+			$( '#jharudar-delete-memberships' ).on( 'click', function() { self.showExtDeleteModal( 'memberships' ); } );
+			$( '#jharudar-load-more-memberships' ).on( 'click', function() { self.loadExtensionData( 'memberships', true ); } );
+
+			/* --- Bookings --- */
+			$( '#jharudar-filter-bookings' ).on( 'click', function() {
+				self.currentOffset = 0;
+				self.loadExtensionData( 'bookings' );
+			} );
+			$( '#jharudar-reset-bk-filters' ).on( 'click', function() {
+				$( '#jharudar-filter-bk-status' ).val( '' ).trigger( 'change' );
+				$( '#jharudar-filter-bk-date-after, #jharudar-filter-bk-date-before' ).val( '' );
+				self.currentOffset = 0;
+				self.loadExtensionData( 'bookings' );
+			} );
+			$( '#jharudar-select-all-bookings' ).on( 'change', function() {
+				$( '.jharudar-booking-checkbox' ).prop( 'checked', $( this ).is( ':checked' ) );
+				self.updateExtActionState( 'bookings' );
+			} );
+			$( document ).on( 'change', '.jharudar-booking-checkbox', function() { self.updateExtActionState( 'bookings' ); } );
+			$( '#jharudar-export-bookings' ).on( 'click', function() { self.exportExtension( 'bookings' ); } );
+			$( '#jharudar-delete-bookings' ).on( 'click', function() { self.showExtDeleteModal( 'bookings' ); } );
+			$( '#jharudar-load-more-bookings' ).on( 'click', function() { self.loadExtensionData( 'bookings', true ); } );
+
+			/* --- Appointments --- */
+			$( '#jharudar-filter-appointments' ).on( 'click', function() {
+				self.currentOffset = 0;
+				self.loadExtensionData( 'appointments' );
+			} );
+			$( '#jharudar-reset-apt-filters' ).on( 'click', function() {
+				$( '#jharudar-filter-apt-status' ).val( '' ).trigger( 'change' );
+				$( '#jharudar-filter-apt-date-after, #jharudar-filter-apt-date-before' ).val( '' );
+				self.currentOffset = 0;
+				self.loadExtensionData( 'appointments' );
+			} );
+			$( '#jharudar-select-all-appointments' ).on( 'change', function() {
+				$( '.jharudar-appointment-checkbox' ).prop( 'checked', $( this ).is( ':checked' ) );
+				self.updateExtActionState( 'appointments' );
+			} );
+			$( document ).on( 'change', '.jharudar-appointment-checkbox', function() { self.updateExtActionState( 'appointments' ); } );
+			$( '#jharudar-export-appointments' ).on( 'click', function() { self.exportExtension( 'appointments' ); } );
+			$( '#jharudar-delete-appointments' ).on( 'click', function() { self.showExtDeleteModal( 'appointments' ); } );
+			$( '#jharudar-load-more-appointments' ).on( 'click', function() { self.loadExtensionData( 'appointments', true ); } );
+
+			/* --- Vendors --- */
+			$( '#jharudar-filter-vendors' ).on( 'click', function() {
+				self.currentOffset = 0;
+				self.loadExtensionData( 'vendors' );
+			} );
+			$( '#jharudar-reset-vendor-filters' ).on( 'click', function() {
+				$( '#jharudar-filter-vendor-type' ).val( '' ).trigger( 'change' );
+				self.currentOffset = 0;
+				self.loadExtensionData( 'vendors' );
+			} );
+			$( '#jharudar-select-all-vendors' ).on( 'change', function() {
+				$( '.jharudar-vendor-checkbox' ).prop( 'checked', $( this ).is( ':checked' ) );
+				self.updateExtActionState( 'vendors' );
+			} );
+			$( document ).on( 'change', '.jharudar-vendor-checkbox', function() { self.updateExtActionState( 'vendors' ); } );
+			$( '#jharudar-delete-vendor-commissions' ).on( 'click', function() { self.deleteVendorCommissions(); } );
+			$( '#jharudar-delete-vendors' ).on( 'click', function() { self.showExtDeleteModal( 'vendors' ); } );
+			$( '#jharudar-load-more-vendors' ).on( 'click', function() { self.loadExtensionData( 'vendors', true ); } );
+
+		/* --- Shared delete modal --- */
+		$( '#jharudar-confirm-ext-delete-input' ).on( 'input', function() {
+			self.validateExtModalConfirm();
+		} );
+		$( '#jharudar-confirm-ext-backup' ).on( 'change', function() {
+			self.validateExtModalConfirm();
+		} );
+		$( '#jharudar-cancel-ext-delete' ).on( 'click', function() {
+			self.closeModal( $( '#jharudar-ext-delete-modal' ) );
+		} );
+		$( '#jharudar-confirm-ext-delete' ).on( 'click', function() {
+			self.executeExtDelete();
+		} );
+		},
+
+		/**
+		 * Current extension type for pending delete.
+		 */
+		pendingExtDeleteType: '',
+
+		/**
+		 * Load extension data via AJAX.
+		 */
+		loadExtensionData: function( type, append ) {
+			var self = this;
+			var $container  = $( '#jharudar-' + type + '-results' );
+			var $pagination = $( '#jharudar-' + type + '-pagination' );
+
+			if ( ! $container.length ) {
+				return;
+			}
+
+			if ( ! append ) {
+				$container.html( '<div class="jharudar-loading"><span class="spinner is-active"></span> Loading...</div>' );
+				this.currentItems = [];
+			}
+
+			var data = {
+				action: 'jharudar_get_' + type,
+				nonce:  jharudar_admin.nonce,
+				limit:  50,
+				offset: self.currentOffset
+			};
+
+			// Gather filters based on type.
+			if ( 'subscriptions' === type ) {
+				data.status      = $( '#jharudar-filter-sub-status' ).val() || '';
+				data.date_after  = $( '#jharudar-filter-sub-date-after' ).val() || '';
+				data.date_before = $( '#jharudar-filter-sub-date-before' ).val() || '';
+			} else if ( 'memberships' === type ) {
+				data.status      = $( '#jharudar-filter-mem-status' ).val() || '';
+				data.plan        = $( '#jharudar-filter-mem-plan' ).val() || '';
+				data.date_after  = $( '#jharudar-filter-mem-date-after' ).val() || '';
+				data.date_before = $( '#jharudar-filter-mem-date-before' ).val() || '';
+			} else if ( 'bookings' === type ) {
+				var bkStatus = $( '#jharudar-filter-bk-status' ).val() || '';
+				if ( bkStatus === 'past' ) {
+					data.past_only = 'true';
+					data.status    = '';
+				} else {
+					data.status      = bkStatus;
+					data.past_only   = 'false';
+				}
+				data.date_after  = $( '#jharudar-filter-bk-date-after' ).val() || '';
+				data.date_before = $( '#jharudar-filter-bk-date-before' ).val() || '';
+			} else if ( 'appointments' === type ) {
+				var aptStatus = $( '#jharudar-filter-apt-status' ).val() || '';
+				if ( aptStatus === 'past' ) {
+					data.past_only = 'true';
+					data.status    = '';
+				} else {
+					data.status    = aptStatus;
+					data.past_only = 'false';
+				}
+				data.date_after  = $( '#jharudar-filter-apt-date-after' ).val() || '';
+				data.date_before = $( '#jharudar-filter-apt-date-before' ).val() || '';
+			} else if ( 'vendors' === type ) {
+				data.filter_type = $( '#jharudar-filter-vendor-type' ).val() || '';
+			}
+
+			$.ajax( {
+				url:  jharudar_admin.ajax_url,
+				type: 'POST',
+				data: data,
+				success: function( response ) {
+					if ( response.success ) {
+						var key   = type;
+						var items = response.data[ key ] || [];
+						self.currentTotal = response.data.total;
+						self.currentItems = self.currentItems.concat( items );
+						self.currentOffset += items.length;
+
+						if ( items.length === 0 && ! append ) {
+							$container.html( self.getEmptyState( 'admin-plugins', 'No ' + type + ' found matching your filters.' ) );
+							$pagination.hide();
+							return;
+						}
+
+						self.renderExtTable( type, items, append );
+						$pagination.find( '.shown' ).text( self.currentOffset );
+						$pagination.find( '.total' ).text( self.currentTotal );
+						if ( self.currentOffset < self.currentTotal ) {
+							$pagination.show();
+						} else {
+							$pagination.hide();
+						}
+					} else {
+						$container.html( '<div class="notice notice-error"><p>' + ( response.data.message || 'Error loading data.' ) + '</p></div>' );
+					}
+				},
+				error: function() {
+					$container.html( '<div class="notice notice-error"><p>Error loading data. Please try again.</p></div>' );
+				}
+			} );
+		},
+
+		/**
+		 * Render extension table.
+		 */
+		renderExtTable: function( type, items, append ) {
+			var $container = $( '#jharudar-' + type + '-results' );
+			var html = '';
+			var self = this;
+
+			if ( ! append ) {
+				html = '<table class="wp-list-table widefat fixed striped"><thead><tr>';
+				html += '<th class="check-column"><input type="checkbox" class="jharudar-ext-select-all-in-table" data-type="' + type + '" /></th>';
+
+				if ( 'subscriptions' === type ) {
+					html += '<th>ID</th><th>Status</th><th>Customer</th><th>Total</th><th>Period</th><th>Start</th><th>End</th><th>Renewals</th>';
+				} else if ( 'memberships' === type ) {
+					html += '<th>ID</th><th>Status</th><th>User</th><th>Plan</th><th>Start</th><th>End</th>';
+				} else if ( 'bookings' === type ) {
+					html += '<th>ID</th><th>Status</th><th>Customer</th><th>Product</th><th>Start</th><th>End</th><th>Created</th>';
+				} else if ( 'appointments' === type ) {
+					html += '<th>ID</th><th>Status</th><th>Customer</th><th>Product</th><th>Staff</th><th>Start</th><th>End</th>';
+				} else if ( 'vendors' === type ) {
+					html += '<th>ID</th><th>Name</th><th>Email</th><th>Products</th><th>Commissions</th><th>Admins</th>';
+				}
+
+				html += '</tr></thead><tbody>';
+			}
+
+			var singular = type.replace( /s$/, '' );
+
+			$.each( items, function( index, item ) {
+				var statusClass = 'jharudar-status-' + ( item.status || '' ).replace( / /g, '-' );
+				html += '<tr><td><input type="checkbox" class="jharudar-' + singular + '-checkbox" value="' + item.id + '" /></td>';
+
+				if ( 'subscriptions' === type ) {
+					html += '<td><a href="' + ( item.edit_url || '#' ) + '" target="_blank">#' + item.id + '</a></td>';
+					html += '<td><span class="jharudar-status ' + statusClass + '">' + self.escapeHtml( item.status_label ) + '</span></td>';
+					html += '<td>' + self.escapeHtml( item.customer ) + '</td>';
+					html += '<td>' + item.total + '</td>';
+					html += '<td>' + self.escapeHtml( item.interval + ' ' + item.period ) + '</td>';
+					html += '<td>' + self.escapeHtml( item.start_date ) + '</td>';
+					html += '<td>' + self.escapeHtml( item.end_date ) + '</td>';
+					html += '<td>' + item.renewal_count + '</td>';
+				} else if ( 'memberships' === type ) {
+					html += '<td><a href="' + ( item.edit_url || '#' ) + '" target="_blank">#' + item.id + '</a></td>';
+					html += '<td><span class="jharudar-status ' + statusClass + '">' + self.escapeHtml( item.status_label ) + '</span></td>';
+					html += '<td>' + self.escapeHtml( item.user_name ) + '</td>';
+					html += '<td>' + self.escapeHtml( item.plan_name ) + '</td>';
+					html += '<td>' + self.escapeHtml( item.start_date ) + '</td>';
+					html += '<td>' + self.escapeHtml( item.end_date ) + '</td>';
+				} else if ( 'bookings' === type ) {
+					html += '<td><a href="' + ( item.edit_url || '#' ) + '" target="_blank">#' + item.id + '</a></td>';
+					html += '<td><span class="jharudar-status ' + statusClass + '">' + self.escapeHtml( item.status_label ) + '</span></td>';
+					html += '<td>' + self.escapeHtml( item.customer ) + '</td>';
+					html += '<td>' + self.escapeHtml( item.product ) + '</td>';
+					html += '<td>' + self.escapeHtml( item.start_date ) + '</td>';
+					html += '<td>' + self.escapeHtml( item.end_date ) + '</td>';
+					html += '<td>' + self.escapeHtml( item.created_date ) + '</td>';
+				} else if ( 'appointments' === type ) {
+					html += '<td><a href="' + ( item.edit_url || '#' ) + '" target="_blank">#' + item.id + '</a></td>';
+					html += '<td><span class="jharudar-status ' + statusClass + '">' + self.escapeHtml( item.status_label ) + '</span></td>';
+					html += '<td>' + self.escapeHtml( item.customer ) + '</td>';
+					html += '<td>' + self.escapeHtml( item.product ) + '</td>';
+					html += '<td>' + self.escapeHtml( item.staff || '-' ) + '</td>';
+					html += '<td>' + self.escapeHtml( item.start_date ) + '</td>';
+					html += '<td>' + self.escapeHtml( item.end_date ) + '</td>';
+				} else if ( 'vendors' === type ) {
+					html += '<td>' + item.id + '</td>';
+					html += '<td><a href="' + ( item.edit_url || '#' ) + '" target="_blank">' + self.escapeHtml( item.name ) + '</a></td>';
+					html += '<td>' + self.escapeHtml( item.email ) + '</td>';
+					html += '<td>' + item.product_count + '</td>';
+					html += '<td>' + item.commission_count + '</td>';
+					html += '<td>' + self.escapeHtml( item.admins || '-' ) + '</td>';
+				}
+
+				html += '</tr>';
+			} );
+
+			if ( ! append ) {
+				html += '</tbody></table>';
+				$container.html( html );
+			} else {
+				$container.find( 'tbody' ).append( html );
+			}
+
+			// Bind table-header select all.
+			$( '.jharudar-ext-select-all-in-table[data-type="' + type + '"]' ).off( 'change' ).on( 'change', function() {
+				var checked = $( this ).is( ':checked' );
+				$( '.jharudar-' + singular + '-checkbox' ).prop( 'checked', checked );
+				$( '#jharudar-select-all-' + type ).prop( 'checked', checked );
+				self.updateExtActionState( type );
+			} );
+		},
+
+		/**
+		 * Update extension action buttons state.
+		 */
+		updateExtActionState: function( type ) {
+			var singular = type.replace( /s$/, '' );
+			var count    = $( '.jharudar-' + singular + '-checkbox:checked' ).length;
+			var $page    = $( '.jharudar-extensions-page' );
+			var $countEl = $page.find( '#jharudar-select-all-' + type ).closest( '.jharudar-actions-bar' ).find( '.jharudar-selected-count' );
+
+			$countEl.find( '.count' ).text( count );
+
+			if ( count > 0 ) {
+				$countEl.show();
+				$( '#jharudar-export-' + type + ', #jharudar-delete-' + type ).prop( 'disabled', false );
+				if ( 'vendors' === type ) {
+					$( '#jharudar-delete-vendor-commissions' ).prop( 'disabled', false );
+				}
+			} else {
+				$countEl.hide();
+				$( '#jharudar-export-' + type + ', #jharudar-delete-' + type ).prop( 'disabled', true );
+				if ( 'vendors' === type ) {
+					$( '#jharudar-delete-vendor-commissions' ).prop( 'disabled', true );
+				}
+			}
+		},
+
+		/**
+		 * Export extension items.
+		 */
+		exportExtension: function( type ) {
+			var singular = type.replace( /s$/, '' );
+			var ids      = this.getSelectedIds( '.jharudar-' + singular + '-checkbox' );
+
+			if ( ids.length === 0 ) {
+				this.showAdminNotice( 'Please select at least one item to export.', 'warning' );
+				return;
+			}
+
+			this.doExport( 'jharudar_export_' + type, ids, singular + '_ids' );
+		},
+
+		/**
+		 * Show extension delete modal.
+		 */
+	/**
+	 * Get the delete action for an extension type.
+	 * Vendors don't support trash (taxonomy terms), so always return 'delete'.
+	 *
+	 * @param {string} type Extension type.
+	 * @return {string} Action: 'delete' or 'trash'.
+	 */
+	getExtDeleteAction: function( type ) {
+		var $select = $( '#jharudar-ext-action-' + type );
+		if ( $select.length ) {
+			return $select.val() || 'trash';
+		}
+		return 'delete'; // Fallback for types without action dropdown (vendors).
+	},
+
+	/**
+	 * Validate the extension delete modal confirm button state.
+	 */
+	validateExtModalConfirm: function() {
+		var type          = this.pendingExtDeleteType;
+		var action        = this.getExtDeleteAction( type );
+		var backupChecked = $( '#jharudar-confirm-ext-backup' ).is( ':checked' );
+
+		if ( action === 'delete' ) {
+			var value = $( '#jharudar-confirm-ext-delete-input' ).val().trim().toUpperCase();
+			$( '#jharudar-confirm-ext-delete' ).prop( 'disabled', value !== 'DELETE' || ! backupChecked );
+		} else {
+			$( '#jharudar-confirm-ext-delete' ).prop( 'disabled', ! backupChecked );
+		}
+	},
+
+	showExtDeleteModal: function( type ) {
+		var singular = type.replace( /s$/, '' );
+		var count    = $( '.jharudar-' + singular + '-checkbox:checked' ).length;
+		var action   = this.getExtDeleteAction( type );
+
+		var actionLabels = { 'delete': 'permanently deleted', 'trash': 'moved to trash' };
+		var actionLabel  = actionLabels[ action ] || 'processed';
+
+		var summary  = count + ' ' + type + ' will be ' + actionLabel + '.';
+
+		// Add related orders context when the checkbox is checked.
+		if ( 'subscriptions' === type && $( '#jharudar-delete-renewals' ).is( ':checked' ) ) {
+			summary += ' Their renewal orders will also be ' + actionLabel + '.';
+		} else if ( 'bookings' === type && $( '#jharudar-delete-booking-orders' ).is( ':checked' ) ) {
+			summary += ' Their linked orders will also be ' + actionLabel + '.';
+		}
+
+		// Update modal title/description based on action.
+		if ( action === 'delete' ) {
+			$( '#jharudar-ext-modal-title' ).text( 'Confirm Permanent Deletion' );
+			$( '#jharudar-ext-modal-description' ).text( 'You are about to permanently delete the selected items. This action cannot be undone.' );
+			$( '#jharudar-ext-confirm-input-wrapper' ).show();
+			$( '#jharudar-confirm-ext-delete' ).addClass( 'button-danger' ).text( 'Delete Permanently' );
+		} else {
+			$( '#jharudar-ext-modal-title' ).text( 'Confirm Move to Trash' );
+			$( '#jharudar-ext-modal-description' ).text( 'The selected items will be moved to trash. You can restore them later if needed.' );
+			$( '#jharudar-ext-confirm-input-wrapper' ).hide();
+			$( '#jharudar-confirm-ext-delete' ).removeClass( 'button-danger' ).text( 'Move to Trash' );
+		}
+
+		this.pendingExtDeleteType = type;
+		$( '#jharudar-ext-delete-modal .jharudar-delete-summary' ).text( summary );
+		$( '#jharudar-confirm-ext-delete-input' ).val( '' );
+		$( '#jharudar-confirm-ext-backup' ).prop( 'checked', false );
+		$( '#jharudar-confirm-ext-delete' ).prop( 'disabled', true );
+		$( '#jharudar-ext-delete-modal' ).addClass( 'active' );
+	},
+
+	/**
+	 * Execute extension delete.
+	 */
+	executeExtDelete: function() {
+		var self     = this;
+		var type     = this.pendingExtDeleteType;
+		var singular = type.replace( /s$/, '' );
+		var ids      = this.getSelectedIds( '.jharudar-' + singular + '-checkbox' );
+		var action   = this.getExtDeleteAction( type );
+
+		var actionLabels = { 'delete': 'Deleted', 'trash': 'Trashed' };
+
+		this.closeModal( $( '#jharudar-ext-delete-modal' ) );
+		this.showProgress( 'jharudar-' + type + '-progress' );
+
+		var data = {
+			action:               'jharudar_delete_' + type,
+			nonce:                jharudar_admin.nonce,
+			delete_action:        action,
+			[ singular + '_ids' ]: ids
+		};
+
+		// Pass extra options for subscriptions and bookings.
+		if ( 'subscriptions' === type ) {
+			data.delete_renewals = $( '#jharudar-delete-renewals' ).is( ':checked' ) ? 'true' : 'false';
+		} else if ( 'bookings' === type ) {
+			data.delete_orders = $( '#jharudar-delete-booking-orders' ).is( ':checked' ) ? 'true' : 'false';
+		}
+
+		$.ajax( {
+			url:  jharudar_admin.ajax_url,
+			type: 'POST',
+			data: data,
+			success: function( response ) {
+				self.hideProgress( 'jharudar-' + type + '-progress' );
+				if ( response.success ) {
+					var label = actionLabels[ response.data.action || action ] || 'Processed';
+					var msg = '';
+					if ( response.data.deleted !== undefined ) {
+						msg = label + ' ' + response.data.deleted + ' item(s).';
+					} else {
+						msg = response.data.message || 'Operation complete.';
+					}
+
+					// Show related order counts if applicable.
+					if ( response.data.renewals_deleted && response.data.renewals_deleted > 0 ) {
+						var rlabel = ( action === 'trash' ) ? 'Also trashed' : 'Also deleted';
+						msg += ' ' + rlabel + ' ' + response.data.renewals_deleted + ' renewal order(s).';
+					}
+					if ( response.data.orders_deleted && response.data.orders_deleted > 0 ) {
+						var olabel = ( action === 'trash' ) ? 'Also trashed' : 'Also deleted';
+						msg += ' ' + olabel + ' ' + response.data.orders_deleted + ' linked order(s).';
+					}
+
+					self.showAdminNotice( msg, 'success' );
+					self.currentOffset = 0;
+					self.loadExtensionData( type );
+				} else {
+					self.showAdminNotice( response.data.message || 'Error processing items.', 'error' );
+				}
+			},
+			error: function() {
+				self.hideProgress( 'jharudar-' + type + '-progress' );
+				self.showAdminNotice( 'Error processing items. Please try again.', 'error' );
+			}
+		} );
+	},
+
+		/**
+		 * Delete vendor commissions.
+		 */
+		deleteVendorCommissions: function() {
+			var self = this;
+			var ids  = this.getSelectedIds( '.jharudar-vendor-checkbox' );
+
+			if ( ids.length === 0 ) {
+				this.showAdminNotice( 'Please select at least one vendor.', 'warning' );
+				return;
+			}
+
+			if ( ! window.confirm( 'Are you sure you want to delete all commission records for the selected vendors?' ) ) {
+				return;
+			}
+
+			this.showProgress( 'jharudar-vendors-progress' );
+
+			$.ajax( {
+				url:  jharudar_admin.ajax_url,
+				type: 'POST',
+				data: {
+					action:     'jharudar_delete_vendor_commissions',
+					nonce:      jharudar_admin.nonce,
+					vendor_ids: ids
+				},
+				success: function( response ) {
+					self.hideProgress( 'jharudar-vendors-progress' );
+					if ( response.success ) {
+						self.showAdminNotice( response.data.message || 'Commissions deleted.', 'success' );
+						self.currentOffset = 0;
+						self.loadExtensionData( 'vendors' );
+					} else {
+						self.showAdminNotice( response.data.message || 'Error deleting commissions.', 'error' );
+					}
+				},
+				error: function() {
+					self.hideProgress( 'jharudar-vendors-progress' );
+					self.showAdminNotice( 'Error deleting commissions. Please try again.', 'error' );
+				}
+			} );
+		},
+
+		/**
+		 * Scan for duplicate products.
+		 */
+	/**
+	 * Store raw duplicate data for client-side filtering.
+	 */
+	duplicateGroupsCache: [],
+	duplicateMatchLabel: '',
+
+	scanDuplicateProducts: function() {
+		var self       = this;
+		var $container = $( '#jharudar-duplicates-results' );
+		var matchBy    = $( '#jharudar-duplicate-match-by' ).val() || 'name';
+
+		// Match type labels for user-friendly messaging.
+		var matchLabels = {
+			'name':            'exact name',
+			'normalized_name': 'normalized name',
+			'sku':             'SKU',
+			'slug':            'slug'
+		};
+		var matchLabel = matchLabels[ matchBy ] || matchBy;
+
+		$container.html( '<div class="jharudar-loading"><span class="spinner is-active"></span> Scanning your catalog for products with the same ' + matchLabel + '…</div>' );
+		$( '#jharudar-duplicate-stats' ).hide();
+		$( '#jharudar-duplicate-actions-bar' ).css( 'display', 'none' );
+
+		// Reset status filter.
+		$( '#jharudar-duplicate-status-filter' ).val( '' );
+
+		$.ajax( {
+			url:  jharudar_admin.ajax_url,
+			type: 'POST',
+			data: {
+				action:   'jharudar_get_duplicate_products',
+				nonce:    jharudar_admin.nonce,
+				match_by: matchBy
+			},
+			success: function( response ) {
+				if ( response.success ) {
+					// Cache the raw data for client-side filtering.
+					self.duplicateGroupsCache = response.data.groups;
+					self.duplicateMatchLabel  = matchLabel;
+
+					if ( response.data.total_groups === 0 ) {
+						$container.html(
+							'<div class="jharudar-empty-state">' +
+							'<span class="dashicons dashicons-yes-alt" style="color: #00a32a;"></span>' +
+							'<p><strong>No duplicates found!</strong></p>' +
+							'<p class="description">No products share the same ' + self.escapeHtml( matchLabel ) + '. Your catalog looks clean. Try a different match type if you want to broaden the search.</p>' +
+							'</div>'
+						);
+						$( '#jharudar-duplicate-stats' ).hide();
+						$( '#jharudar-duplicate-actions-bar' ).css( 'display', 'none' );
+						return;
+					}
+
+					// Update stats.
+					$( '#jharudar-dup-group-count' ).text( response.data.total_groups );
+					$( '#jharudar-dup-product-count' ).text( response.data.total_products );
+					$( '#jharudar-duplicate-stats' ).show();
+
+					self.renderDuplicateGroups( response.data.groups, matchLabel );
+					$( '#jharudar-duplicate-actions-bar' ).css( 'display', 'flex' );
+					self.updateDuplicateActionState();
+				} else {
+					$container.html( '<div class="notice notice-error"><p>' + ( response.data.message || 'Error scanning for duplicates.' ) + '</p></div>' );
+				}
+			},
+			error: function() {
+				$container.html( '<div class="notice notice-error"><p>Error scanning for duplicates. Please try again.</p></div>' );
+			}
+		} );
+	},
+
+	/**
+	 * Filter duplicate results by status (client-side).
+	 */
+	filterDuplicateResults: function() {
+		var self       = this;
+		var status     = $( '#jharudar-duplicate-status-filter' ).val();
+		var groups     = self.duplicateGroupsCache;
+		var matchLabel = self.duplicateMatchLabel;
+
+		if ( ! groups || groups.length === 0 ) {
+			return;
+		}
+
+		if ( ! status ) {
+			// No filter — show all.
+			self.renderDuplicateGroups( groups, matchLabel );
+			$( '#jharudar-dup-group-count' ).text( groups.length );
+			var totalProducts = 0;
+			$.each( groups, function( _, g ) { totalProducts += g.products.length; } );
+			$( '#jharudar-dup-product-count' ).text( totalProducts );
+			self.updateDuplicateActionState();
+			return;
+		}
+
+		// Filter each group — only keep products matching the status.
+		var filteredGroups = [];
+		var totalProducts  = 0;
+
+		$.each( groups, function( _, group ) {
+			var filteredProducts = [];
+			$.each( group.products, function( _, product ) {
+				if ( product.status === status ) {
+					filteredProducts.push( product );
+				}
+			} );
+
+			// Only show groups that still have 2+ products after filtering.
+			if ( filteredProducts.length > 1 ) {
+				filteredGroups.push( {
+					value:    group.value,
+					products: filteredProducts
+				} );
+				totalProducts += filteredProducts.length;
+			}
+		} );
+
+		$( '#jharudar-dup-group-count' ).text( filteredGroups.length );
+		$( '#jharudar-dup-product-count' ).text( totalProducts );
+
+		if ( filteredGroups.length === 0 ) {
+			$( '#jharudar-duplicates-results' ).html(
+				'<div class="jharudar-empty-state">' +
+				'<span class="dashicons dashicons-filter"></span>' +
+				'<p>No duplicate groups with <strong>' + self.escapeHtml( status ) + '</strong> products found.</p>' +
+				'<p class="description">Try a different status filter or select "All Statuses".</p>' +
+				'</div>'
+			);
+			$( '#jharudar-duplicate-actions-bar' ).css( 'display', 'none' );
+		} else {
+			self.renderDuplicateGroups( filteredGroups, matchLabel );
+			$( '#jharudar-duplicate-actions-bar' ).css( 'display', 'flex' );
+		}
+		self.updateDuplicateActionState();
+	},
+
+	/**
+	 * Render duplicate product groups.
+	 *
+	 * @param {Array}  groups     Array of duplicate groups.
+	 * @param {string} matchLabel Human-friendly label for the match type.
+	 */
+	renderDuplicateGroups: function( groups, matchLabel ) {
+		var self       = this;
+		var $container = $( '#jharudar-duplicates-results' );
+		var html       = '';
+
+		html += '<p class="description" style="margin-bottom: 15px;">Found <strong>' + groups.length + ' group(s)</strong> of products sharing the same ' + self.escapeHtml( matchLabel || 'field' ) + '. For each group, the oldest product is pre-selected to <strong style="color: #00a32a;">keep</strong>. Review and adjust as needed, then process the extras.</p>';
+
+		$.each( groups, function( groupIndex, group ) {
+			html += '<div class="jharudar-duplicate-group" style="margin-bottom: 20px; border: 1px solid #ddd; border-radius: 4px; overflow: hidden;">';
+			html += '<div class="jharudar-duplicate-group-header" style="background: #f9f9f9; padding: 10px 15px; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center;">';
+			html += '<span><strong>"' + self.escapeHtml( group.value ) + '"</strong> &mdash; ' + group.products.length + ' products</span>';
+			html += '<span class="description">Set ' + ( groupIndex + 1 ) + ' of ' + groups.length + '</span>';
+			html += '</div>';
+
+			html += '<table class="wp-list-table widefat fixed striped" style="border: 0; margin: 0;">';
+			html += '<thead><tr>';
+			html += '<th style="width: 40px; text-align: center;" title="Select which product to keep">Keep</th>';
+			html += '<th style="width: 40px; text-align: center;" title="Check to mark for processing">Select</th>';
+			html += '<th style="width: 50px;">ID</th>';
+			html += '<th>Name</th>';
+			html += '<th>SKU</th>';
+			html += '<th>Status</th>';
+			html += '<th>Price</th>';
+			html += '<th>Type</th>';
+			html += '<th>Created</th>';
+			html += '</tr></thead><tbody>';
+
+			$.each( group.products, function( productIndex, product ) {
+				var isFirst  = productIndex === 0;
+
+				html += '<tr' + ( isFirst ? ' style="background: #f0fdf4;"' : '' ) + '>';
+				html += '<td style="text-align: center;">';
+				html += '<input type="radio" name="jharudar-keep-group-' + groupIndex + '" value="' + product.id + '" ' + ( isFirst ? 'checked' : '' ) + ' class="jharudar-dup-keep-radio" data-group="' + groupIndex + '" title="Keep this product" />';
+				html += '</td>';
+				html += '<td style="text-align: center;">';
+				html += '<input type="checkbox" value="' + product.id + '" ' + ( ! isFirst ? 'checked' : '' ) + ' class="jharudar-dup-delete-checkbox" data-group="' + groupIndex + '" title="Mark for processing" />';
+				html += '</td>';
+				html += '<td>' + product.id + '</td>';
+				html += '<td>' + self.escapeHtml( product.name ) + '</td>';
+				html += '<td>' + ( product.sku || '-' ) + '</td>';
+				html += '<td><span class="jharudar-status jharudar-status-' + product.status + '">' + product.status + '</span></td>';
+				html += '<td>' + product.price + '</td>';
+				html += '<td>' + product.type + '</td>';
+				html += '<td>' + self.escapeHtml( product.date ) + '</td>';
+				html += '</tr>';
+			} );
+
+			html += '</tbody></table></div>';
+		} );
+
+		$container.html( html );
+
+		// When "keep" radio is selected, uncheck the delete checkbox for that product
+		// and check all others in the group.
+		$( document ).off( 'change.jharudar-dup-keep' ).on( 'change.jharudar-dup-keep', '.jharudar-dup-keep-radio', function() {
+			var groupIdx = $( this ).data( 'group' );
+			var keepId   = $( this ).val();
+
+			$( '.jharudar-dup-delete-checkbox[data-group="' + groupIdx + '"]' ).each( function() {
+				$( this ).prop( 'checked', $( this ).val() !== keepId );
+			} );
+
+			// Highlight the kept row.
+			$( this ).closest( 'tbody' ).find( 'tr' ).css( 'background', '' );
+			$( this ).closest( 'tr' ).css( 'background', '#f0fdf4' );
+
+			self.updateDuplicateActionState();
+		} );
+	},
+
+	/**
+	 * Update the duplicate delete action state (count + buttons enabled).
+	 */
+	updateDuplicateActionState: function() {
+		var count = $( '.jharudar-dup-delete-checkbox:checked' ).length;
+		$( '#jharudar-dup-selected-count' ).text( count );
+		$( '#jharudar-delete-duplicates' ).prop( 'disabled', count === 0 );
+		$( '#jharudar-export-duplicates' ).prop( 'disabled', count === 0 );
+	},
+
+	/**
+	 * Export selected duplicate products as CSV.
+	 */
+	exportDuplicateProducts: function() {
+		var ids = this.getSelectedIds( '.jharudar-dup-delete-checkbox' );
+
+		if ( ids.length === 0 ) {
+			this.showAdminNotice( 'Please select at least one duplicate product to export.', 'warning' );
+			return;
+		}
+
+		this.doExport( 'jharudar_export_duplicate_products', ids, 'product_ids' );
+	},
+
+	/**
+	 * Validate the duplicate modal confirm button state.
+	 */
+	validateDupModalConfirm: function() {
+		var action        = $( '#jharudar-dup-delete-action' ).val() || 'delete';
+		var backupChecked = $( '#jharudar-confirm-dup-backup' ).is( ':checked' );
+
+		if ( action === 'delete' ) {
+			var value = $( '#jharudar-confirm-dup-delete-input' ).val().trim().toUpperCase();
+			$( '#jharudar-confirm-dup-delete' ).prop( 'disabled', value !== 'DELETE' || ! backupChecked );
+		} else {
+			// Trash/Draft only requires backup checkbox.
+			$( '#jharudar-confirm-dup-delete' ).prop( 'disabled', ! backupChecked );
+		}
+	},
+
+	/**
+	 * Show the duplicate delete confirmation modal.
+	 */
+	showDuplicateDeleteModal: function() {
+		var count      = $( '.jharudar-dup-delete-checkbox:checked' ).length;
+		var keepCount  = $( '.jharudar-dup-keep-radio:checked' ).length;
+		var action     = $( '#jharudar-dup-delete-action' ).val() || 'delete';
+		var setupRedirects = $( '#jharudar-dup-setup-redirects' ).is( ':checked' );
+
+		var actionLabels = {
+			'delete': 'permanently deleted',
+			'trash':  'moved to trash',
+			'draft':  'set as draft'
+		};
+		var actionLabel = actionLabels[ action ] || 'processed';
+
+		// Update modal title and description based on action.
+		if ( action === 'delete' ) {
+			$( '#jharudar-dup-modal-title' ).text( 'Confirm Permanent Deletion' );
+			$( '#jharudar-dup-modal-description' ).text( 'You are about to permanently delete the selected duplicate products. This action cannot be undone.' );
+			$( '#jharudar-dup-confirm-input-wrapper' ).show();
+			$( '#jharudar-confirm-dup-delete' ).addClass( 'button-danger' ).text( 'Delete Permanently' );
+		} else if ( action === 'trash' ) {
+			$( '#jharudar-dup-modal-title' ).text( 'Confirm Move to Trash' );
+			$( '#jharudar-dup-modal-description' ).text( 'The selected duplicate products will be moved to trash. You can restore them later if needed.' );
+			$( '#jharudar-dup-confirm-input-wrapper' ).hide();
+			$( '#jharudar-confirm-dup-delete' ).removeClass( 'button-danger' ).text( 'Move to Trash' );
+		} else {
+			$( '#jharudar-dup-modal-title' ).text( 'Confirm Set as Draft' );
+			$( '#jharudar-dup-modal-description' ).text( 'The selected duplicate products will be set to draft status. They will no longer be visible on the store.' );
+			$( '#jharudar-dup-confirm-input-wrapper' ).hide();
+			$( '#jharudar-confirm-dup-delete' ).removeClass( 'button-danger' ).text( 'Set as Draft' );
+		}
+
+		$( '#jharudar-dup-delete-modal .jharudar-delete-summary' ).text( count + ' duplicate product(s) will be ' + actionLabel + '. ' + keepCount + ' product(s) will be kept.' );
+
+		// Show redirect notice if redirects are enabled and action is delete or trash.
+		if ( setupRedirects && ( action === 'delete' || action === 'trash' ) ) {
+			$( '#jharudar-dup-redirect-notice' ).show();
+		} else {
+			$( '#jharudar-dup-redirect-notice' ).hide();
+		}
+
+		$( '#jharudar-confirm-dup-delete-input' ).val( '' );
+		$( '#jharudar-confirm-dup-backup' ).prop( 'checked', false );
+		$( '#jharudar-confirm-dup-delete' ).prop( 'disabled', true );
+		$( '#jharudar-dup-delete-modal' ).addClass( 'active' );
+	},
+
+	/**
+	 * Build a redirect map: { deletedId: keptId } for each group.
+	 *
+	 * @return {Object} Map of deleted product IDs to the kept product ID in their group.
+	 */
+	buildDuplicateRedirectMap: function() {
+		var map = {};
+
+		$( '.jharudar-dup-delete-checkbox:checked' ).each( function() {
+			var groupIdx = $( this ).data( 'group' );
+			var deletedId = $( this ).val();
+			var keptId = $( '.jharudar-dup-keep-radio[data-group="' + groupIdx + '"]:checked' ).val();
+
+			if ( keptId && deletedId !== keptId ) {
+				map[ deletedId ] = keptId;
+			}
+		} );
+
+		return map;
+	},
+
+	/**
+	 * Execute duplicate product deletion/trash/draft.
+	 */
+	deleteDuplicateProducts: function() {
+		var self            = this;
+		var ids             = this.getSelectedIds( '.jharudar-dup-delete-checkbox' );
+		var deleteImages    = $( '#jharudar-dup-delete-images' ).is( ':checked' );
+		var action          = $( '#jharudar-dup-delete-action' ).val() || 'delete';
+		var setupRedirects  = $( '#jharudar-dup-setup-redirects' ).is( ':checked' );
+		var redirectMap     = setupRedirects ? this.buildDuplicateRedirectMap() : {};
+
+		this.closeModal( $( '#jharudar-dup-delete-modal' ) );
+		this.showProgress( 'jharudar-duplicates-progress' );
+
+		var actionLabels = {
+			'delete': 'Deleted',
+			'trash':  'Trashed',
+			'draft':  'Set as draft'
+		};
+
+		$.ajax( {
+			url:  jharudar_admin.ajax_url,
+			type: 'POST',
+			data: {
+				action:           'jharudar_delete_duplicate_products',
+				nonce:            jharudar_admin.nonce,
+				product_ids:      ids,
+				delete_images:    deleteImages ? 'true' : 'false',
+				delete_action:    action,
+				setup_redirects:  setupRedirects ? 'true' : 'false',
+				redirect_map:     redirectMap
+			},
+			success: function( response ) {
+				self.hideProgress( 'jharudar-duplicates-progress' );
+				if ( response.success ) {
+					var label = actionLabels[ response.data.action ] || 'Processed';
+					var msg = label + ' ' + response.data.deleted + ' duplicate product(s).';
+					if ( response.data.failed > 0 ) {
+						msg += ' ' + response.data.failed + ' failed.';
+					}
+					if ( response.data.redirects_created > 0 ) {
+						msg += ' ' + response.data.redirects_created + ' redirect(s) created.';
+					}
+					self.showAdminNotice( msg, 'success' );
+					// Re-scan to refresh the view.
+					self.scanDuplicateProducts();
+				} else {
+					self.showAdminNotice( response.data.message || 'Error processing duplicates.', 'error' );
+				}
+			},
+			error: function() {
+				self.hideProgress( 'jharudar-duplicates-progress' );
+				self.showAdminNotice( 'Error processing duplicates. Please try again.', 'error' );
+			}
+		} );
+	},
 
 		/**
 		 * Escape HTML special characters.

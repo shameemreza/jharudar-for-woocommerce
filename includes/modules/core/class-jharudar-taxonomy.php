@@ -382,9 +382,9 @@ class Jharudar_Taxonomy {
 			);
 		}
 
-		$has_more       = count( $terms ) > $limit;
-		$truncated      = array_slice( $terms, 0, $limit );
-		$term_names     = array_map(
+		$has_more   = count( $terms ) > $limit;
+		$truncated  = array_slice( $terms, 0, $limit );
+		$term_names = array_map(
 			function ( $term ) {
 				return $term->name;
 			},

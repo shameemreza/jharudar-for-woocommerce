@@ -26,27 +26,27 @@ $jharudar_db_stats = Jharudar_Database::get_statistics();
 	<!-- Sub-tabs -->
 	<div class="jharudar-subtabs">
 		<a href="<?php echo esc_url( jharudar_admin_url( 'database', array( 'subtab' => 'transients' ) ) ); ?>"
-		   class="jharudar-subtab <?php echo 'transients' === $jharudar_current_subtab ? 'active' : ''; ?>">
+			class="jharudar-subtab <?php echo 'transients' === $jharudar_current_subtab ? 'active' : ''; ?>">
 			<?php esc_html_e( 'Transients', 'jharudar-for-woocommerce' ); ?>
 		</a>
 		<a href="<?php echo esc_url( jharudar_admin_url( 'database', array( 'subtab' => 'sessions' ) ) ); ?>"
-		   class="jharudar-subtab <?php echo 'sessions' === $jharudar_current_subtab ? 'active' : ''; ?>">
+			class="jharudar-subtab <?php echo 'sessions' === $jharudar_current_subtab ? 'active' : ''; ?>">
 			<?php esc_html_e( 'Sessions', 'jharudar-for-woocommerce' ); ?>
 		</a>
 		<a href="<?php echo esc_url( jharudar_admin_url( 'database', array( 'subtab' => 'orphaned' ) ) ); ?>"
-		   class="jharudar-subtab <?php echo 'orphaned' === $jharudar_current_subtab ? 'active' : ''; ?>">
+			class="jharudar-subtab <?php echo 'orphaned' === $jharudar_current_subtab ? 'active' : ''; ?>">
 			<?php esc_html_e( 'Orphaned Data', 'jharudar-for-woocommerce' ); ?>
 		</a>
 		<a href="<?php echo esc_url( jharudar_admin_url( 'database', array( 'subtab' => 'table_analysis' ) ) ); ?>"
-		   class="jharudar-subtab <?php echo 'table_analysis' === $jharudar_current_subtab ? 'active' : ''; ?>">
+			class="jharudar-subtab <?php echo 'table_analysis' === $jharudar_current_subtab ? 'active' : ''; ?>">
 			<?php esc_html_e( 'Table Analysis', 'jharudar-for-woocommerce' ); ?>
 		</a>
 		<a href="<?php echo esc_url( jharudar_admin_url( 'database', array( 'subtab' => 'optimize' ) ) ); ?>"
-		   class="jharudar-subtab <?php echo 'optimize' === $jharudar_current_subtab ? 'active' : ''; ?>">
+			class="jharudar-subtab <?php echo 'optimize' === $jharudar_current_subtab ? 'active' : ''; ?>">
 			<?php esc_html_e( 'Optimize Tables', 'jharudar-for-woocommerce' ); ?>
 		</a>
 		<a href="<?php echo esc_url( jharudar_admin_url( 'database', array( 'subtab' => 'tools' ) ) ); ?>"
-		   class="jharudar-subtab <?php echo 'tools' === $jharudar_current_subtab ? 'active' : ''; ?>">
+			class="jharudar-subtab <?php echo 'tools' === $jharudar_current_subtab ? 'active' : ''; ?>">
 			<?php esc_html_e( 'Tools', 'jharudar-for-woocommerce' ); ?>
 		</a>
 	</div>

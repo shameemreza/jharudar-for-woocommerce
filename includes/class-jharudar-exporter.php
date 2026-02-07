@@ -361,13 +361,13 @@ class Jharudar_Exporter {
 	public function export_customers( $customer_ids ) {
 		$this->set_columns(
 			array(
-				'id'            => __( 'ID', 'jharudar-for-woocommerce' ),
-				'email'         => __( 'Email', 'jharudar-for-woocommerce' ),
-				'first_name'    => __( 'First Name', 'jharudar-for-woocommerce' ),
-				'last_name'     => __( 'Last Name', 'jharudar-for-woocommerce' ),
-				'date_created'  => __( 'Date Created', 'jharudar-for-woocommerce' ),
-				'orders_count'  => __( 'Orders Count', 'jharudar-for-woocommerce' ),
-				'total_spent'   => __( 'Total Spent', 'jharudar-for-woocommerce' ),
+				'id'           => __( 'ID', 'jharudar-for-woocommerce' ),
+				'email'        => __( 'Email', 'jharudar-for-woocommerce' ),
+				'first_name'   => __( 'First Name', 'jharudar-for-woocommerce' ),
+				'last_name'    => __( 'Last Name', 'jharudar-for-woocommerce' ),
+				'date_created' => __( 'Date Created', 'jharudar-for-woocommerce' ),
+				'orders_count' => __( 'Orders Count', 'jharudar-for-woocommerce' ),
+				'total_spent'  => __( 'Total Spent', 'jharudar-for-woocommerce' ),
 			)
 		);
 
@@ -406,12 +406,12 @@ class Jharudar_Exporter {
 	public function export_coupons( $coupon_ids ) {
 		$this->set_columns(
 			array(
-				'id'           => __( 'ID', 'jharudar-for-woocommerce' ),
-				'code'         => __( 'Code', 'jharudar-for-woocommerce' ),
-				'discount'     => __( 'Discount', 'jharudar-for-woocommerce' ),
-				'type'         => __( 'Type', 'jharudar-for-woocommerce' ),
-				'usage_count'  => __( 'Usage Count', 'jharudar-for-woocommerce' ),
-				'expiry_date'  => __( 'Expiry Date', 'jharudar-for-woocommerce' ),
+				'id'          => __( 'ID', 'jharudar-for-woocommerce' ),
+				'code'        => __( 'Code', 'jharudar-for-woocommerce' ),
+				'discount'    => __( 'Discount', 'jharudar-for-woocommerce' ),
+				'type'        => __( 'Type', 'jharudar-for-woocommerce' ),
+				'usage_count' => __( 'Usage Count', 'jharudar-for-woocommerce' ),
+				'expiry_date' => __( 'Expiry Date', 'jharudar-for-woocommerce' ),
 			)
 		);
 

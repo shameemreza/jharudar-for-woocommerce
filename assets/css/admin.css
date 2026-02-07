@@ -662,6 +662,28 @@
 	margin-top: -2px;
 }
 
+/* Empty Trash button */
+.jharudar-empty-trash-btn {
+	color: #b32d2e !important;
+	border-color: #b32d2e !important;
+}
+
+.jharudar-empty-trash-btn:hover,
+.jharudar-empty-trash-btn:focus {
+	color: #fff !important;
+	background: #b32d2e !important;
+	border-color: #b32d2e !important;
+}
+
+.jharudar-empty-trash-btn .dashicons {
+	font-size: 16px;
+	width: 16px;
+	height: 16px;
+	vertical-align: middle;
+	margin-right: 3px;
+	margin-top: -2px;
+}
+
 /* Danger button */
 .button-danger {
 	background: #d63638 !important;

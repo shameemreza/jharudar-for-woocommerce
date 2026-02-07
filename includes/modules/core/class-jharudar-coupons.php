@@ -40,6 +40,7 @@ class Jharudar_Coupons {
 		add_action( 'wp_ajax_jharudar_delete_coupons', array( $this, 'ajax_delete_coupons' ) );
 		add_action( 'wp_ajax_jharudar_export_coupons', array( $this, 'ajax_export_coupons' ) );
 		add_action( 'wp_ajax_jharudar_get_coupon_stats', array( $this, 'ajax_get_coupon_stats' ) );
+		add_action( 'wp_ajax_jharudar_empty_trash_coupons', array( $this, 'ajax_empty_trash' ) );
 	}
 
 	/**
@@ -347,6 +348,73 @@ class Jharudar_Coupons {
 				'jharudar'
 			);
 		}
+	}
+
+	/**
+	 * Count trashed coupons.
+	 *
+	 * @since 0.2.0
+	 * @return int Trashed coupon count.
+	 */
+	public static function count_trashed() {
+		$counts = wp_count_posts( 'shop_coupon' );
+
+		return isset( $counts->trash ) ? (int) $counts->trash : 0;
+	}
+
+	/**
+	 * Permanently delete all trashed coupons.
+	 *
+	 * @since 0.2.0
+	 * @return array Result data.
+	 */
+	public function empty_trash() {
+		$args = array(
+			'post_type'      => 'shop_coupon',
+			'post_status'    => 'trash',
+			'posts_per_page' => -1,
+			'fields'         => 'ids',
+		);
+
+		$query   = new WP_Query( $args );
+		$deleted = 0;
+		$failed  = 0;
+
+		foreach ( $query->posts as $coupon_id ) {
+			$coupon = new WC_Coupon( $coupon_id );
+
+			if ( ! $coupon || ! $coupon->get_id() ) {
+				wp_delete_post( $coupon_id, true );
+				++$deleted;
+				continue;
+			}
+
+			jharudar_log_activity( 'delete', 'coupon', $coupon_id );
+			$coupon->delete( true );
+			++$deleted;
+		}
+
+		return array(
+			'deleted' => $deleted,
+			'failed'  => $failed,
+		);
+	}
+
+	/**
+	 * AJAX handler: Empty trash for coupons.
+	 *
+	 * @since 0.2.0
+	 * @return void
+	 */
+	public function ajax_empty_trash() {
+		check_ajax_referer( 'jharudar_admin_nonce', 'nonce' );
+
+		if ( ! jharudar_user_can_manage() ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'jharudar-for-woocommerce' ) ) );
+		}
+
+		$result = $this->empty_trash();
+		wp_send_json_success( $result );
 	}
 
 	/**

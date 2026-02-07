@@ -40,6 +40,7 @@ class Jharudar_Orders {
 		add_action( 'wp_ajax_jharudar_delete_orders', array( $this, 'ajax_delete_orders' ) );
 		add_action( 'wp_ajax_jharudar_anonymize_orders', array( $this, 'ajax_anonymize_orders' ) );
 		add_action( 'wp_ajax_jharudar_export_orders', array( $this, 'ajax_export_orders' ) );
+		add_action( 'wp_ajax_jharudar_empty_trash_orders', array( $this, 'ajax_empty_trash' ) );
 	}
 
 	/**
@@ -256,9 +257,9 @@ class Jharudar_Orders {
 	 * @return array Result data.
 	 */
 	public function anonymize_orders( $order_ids ) {
-		$order_ids   = jharudar_sanitize_ids( $order_ids );
-		$anonymized  = 0;
-		$failed      = 0;
+		$order_ids  = jharudar_sanitize_ids( $order_ids );
+		$anonymized = 0;
+		$failed     = 0;
 
 		foreach ( $order_ids as $order_id ) {
 			$order = wc_get_order( $order_id );
@@ -354,6 +355,78 @@ class Jharudar_Orders {
 				'jharudar'
 			);
 		}
+	}
+
+	/**
+	 * Count trashed orders.
+	 *
+	 * @since 0.2.0
+	 * @return int Trashed order count.
+	 */
+	public static function count_trashed() {
+		return count(
+			wc_get_orders(
+				array(
+					'limit'  => -1,
+					'return' => 'ids',
+					'status' => 'trash',
+				)
+			)
+		);
+	}
+
+	/**
+	 * Permanently delete all trashed orders.
+	 *
+	 * @since 0.2.0
+	 * @return array Result data.
+	 */
+	public function empty_trash() {
+		$order_ids = wc_get_orders(
+			array(
+				'limit'  => -1,
+				'return' => 'ids',
+				'status' => 'trash',
+			)
+		);
+
+		$deleted = 0;
+		$failed  = 0;
+
+		foreach ( $order_ids as $order_id ) {
+			$order = wc_get_order( $order_id );
+
+			if ( ! $order ) {
+				++$failed;
+				continue;
+			}
+
+			jharudar_log_activity( 'delete', 'order', $order_id );
+			$order->delete( true );
+			++$deleted;
+		}
+
+		return array(
+			'deleted' => $deleted,
+			'failed'  => $failed,
+		);
+	}
+
+	/**
+	 * AJAX handler: Empty trash for orders.
+	 *
+	 * @since 0.2.0
+	 * @return void
+	 */
+	public function ajax_empty_trash() {
+		check_ajax_referer( 'jharudar_admin_nonce', 'nonce' );
+
+		if ( ! jharudar_user_can_manage() ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'jharudar-for-woocommerce' ) ) );
+		}
+
+		$result = $this->empty_trash();
+		wp_send_json_success( $result );
 	}
 
 	/**

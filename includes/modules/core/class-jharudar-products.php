@@ -41,6 +41,14 @@ class Jharudar_Products {
 		add_action( 'wp_ajax_jharudar_export_products', array( $this, 'ajax_export_products' ) );
 		add_action( 'wp_ajax_jharudar_get_orphaned_images', array( $this, 'ajax_get_orphaned_images' ) );
 		add_action( 'wp_ajax_jharudar_delete_orphaned_images', array( $this, 'ajax_delete_orphaned_images' ) );
+		add_action( 'wp_ajax_jharudar_get_duplicate_products', array( $this, 'ajax_get_duplicate_products' ) );
+		add_action( 'wp_ajax_jharudar_delete_duplicate_products', array( $this, 'ajax_delete_duplicate_products' ) );
+		add_action( 'wp_ajax_jharudar_export_duplicate_products', array( $this, 'ajax_export_duplicate_products' ) );
+		add_action( 'wp_ajax_jharudar_check_product_dependencies', array( $this, 'ajax_check_product_dependencies' ) );
+		add_action( 'wp_ajax_jharudar_empty_trash_products', array( $this, 'ajax_empty_trash' ) );
+
+		// 301 redirect template_redirect hook for deleted duplicates.
+		add_action( 'template_redirect', array( $this, 'handle_duplicate_redirects' ) );
 	}
 
 	/**
@@ -648,5 +656,594 @@ class Jharudar_Products {
 
 		$result = $this->delete_orphaned_images( $image_ids );
 		wp_send_json_success( $result );
+	}
+
+	/**
+	 * Get duplicate products grouped by the matching field value.
+	 *
+	 * Returns an array of "duplicate sets" – each set contains products
+	 * that share the same field value (name, SKU, or slug).
+	 *
+	 * @since 0.1.0
+	 * @param string $match_by Match type: 'name', 'sku', 'slug', or 'normalized_name'.
+	 * @return array {
+	 *     @type array  $groups Array of duplicate groups, each containing 'value' and 'products'.
+	 *     @type int    $total_groups  Number of duplicate sets.
+	 *     @type int    $total_products Total duplicate products (across all groups).
+	 * }
+	 */
+	public function get_duplicate_products( $match_by = 'name' ) {
+		global $wpdb;
+
+		$groups = array();
+
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		switch ( $match_by ) {
+			case 'sku':
+				$duplicates = $wpdb->get_results(
+					"SELECT pm.meta_value AS match_value, GROUP_CONCAT(pm.post_id ORDER BY p.post_date ASC) AS ids
+					FROM {$wpdb->postmeta} pm
+					INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+					WHERE pm.meta_key = '_sku'
+					AND pm.meta_value != ''
+					AND p.post_type IN ('product', 'product_variation')
+					AND p.post_status != 'trash'
+					GROUP BY pm.meta_value
+					HAVING COUNT(*) > 1
+					ORDER BY COUNT(*) DESC"
+				);
+				break;
+
+			case 'slug':
+				// Match by post_name (slug), stripping trailing -N suffixes to find copies.
+				$duplicates = $wpdb->get_results(
+					"SELECT
+						CASE
+							WHEN post_name REGEXP '-[0-9]+$'
+							THEN TRIM(TRAILING CONCAT('-', SUBSTRING_INDEX(post_name, '-', -1)) FROM post_name)
+							ELSE post_name
+						END AS match_value,
+						GROUP_CONCAT(ID ORDER BY post_date ASC) AS ids
+					FROM {$wpdb->posts}
+					WHERE post_type = 'product'
+					AND post_status != 'trash'
+					GROUP BY match_value
+					HAVING COUNT(*) > 1
+					ORDER BY COUNT(*) DESC"
+				);
+				break;
+
+			case 'normalized_name':
+				$duplicates = $wpdb->get_results(
+					"SELECT LOWER(TRIM(post_title)) AS match_value, GROUP_CONCAT(ID ORDER BY post_date ASC) AS ids
+					FROM {$wpdb->posts}
+					WHERE post_type = 'product'
+					AND post_status != 'trash'
+					AND post_title != ''
+					GROUP BY match_value
+					HAVING COUNT(*) > 1
+					ORDER BY COUNT(*) DESC"
+				);
+				break;
+
+			default: // 'name' – exact title match.
+				$duplicates = $wpdb->get_results(
+					"SELECT post_title AS match_value, GROUP_CONCAT(ID ORDER BY post_date ASC) AS ids
+					FROM {$wpdb->posts}
+					WHERE post_type = 'product'
+					AND post_status != 'trash'
+					AND post_title != ''
+					GROUP BY post_title
+					HAVING COUNT(*) > 1
+					ORDER BY COUNT(*) DESC"
+				);
+				break;
+		}
+		// phpcs:enable
+
+		$total_products = 0;
+
+		if ( ! empty( $duplicates ) ) {
+			foreach ( $duplicates as $row ) {
+				$product_ids = array_map( 'absint', explode( ',', $row->ids ) );
+				$products    = array();
+
+				foreach ( $product_ids as $pid ) {
+					$product = wc_get_product( $pid );
+					if ( ! $product ) {
+						continue;
+					}
+					$products[] = array(
+						'id'     => $product->get_id(),
+						'name'   => $product->get_name(),
+						'sku'    => $product->get_sku(),
+						'status' => $product->get_status(),
+						'price'  => $product->get_price() ? wc_price( $product->get_price() ) : '-',
+						'type'   => $product->get_type(),
+						'date'   => get_the_date( get_option( 'date_format' ), $product->get_id() ),
+						'slug'   => $product->get_slug(),
+					);
+				}
+
+				if ( count( $products ) > 1 ) {
+					$groups[]        = array(
+						'value'    => $row->match_value,
+						'products' => $products,
+					);
+					$total_products += count( $products );
+				}
+			}
+		}
+
+		return array(
+			'groups'         => $groups,
+			'total_groups'   => count( $groups ),
+			'total_products' => $total_products,
+		);
+	}
+
+	/**
+	 * Count duplicate product groups and total duplicate products.
+	 *
+	 * @since 0.1.0
+	 * @param string $match_by Match type.
+	 * @return array {
+	 *     @type int $groups   Number of duplicate groups.
+	 *     @type int $products Total number of duplicate products.
+	 * }
+	 */
+	public function count_duplicate_products( $match_by = 'name' ) {
+		$result = $this->get_duplicate_products( $match_by );
+
+		return array(
+			'groups'   => $result['total_groups'],
+			'products' => $result['total_products'],
+		);
+	}
+
+	/**
+	 * AJAX handler: Get duplicate products.
+	 *
+	 * @since 0.1.0
+	 * @return void
+	 */
+	public function ajax_get_duplicate_products() {
+		check_ajax_referer( 'jharudar_admin_nonce', 'nonce' );
+
+		if ( ! jharudar_user_can_manage() ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'jharudar-for-woocommerce' ) ) );
+		}
+
+		$match_by = isset( $_POST['match_by'] ) ? sanitize_key( $_POST['match_by'] ) : 'name';
+		$allowed  = array( 'name', 'sku', 'slug', 'normalized_name' );
+
+		if ( ! in_array( $match_by, $allowed, true ) ) {
+			$match_by = 'name';
+		}
+
+		$result = $this->get_duplicate_products( $match_by );
+		wp_send_json_success( $result );
+	}
+
+	/**
+	 * AJAX handler: Delete duplicate products.
+	 *
+	 * Accepts an explicit list of product IDs chosen by the user.
+	 *
+	 * @since 0.1.0
+	 * @return void
+	 */
+	public function ajax_delete_duplicate_products() {
+		check_ajax_referer( 'jharudar_admin_nonce', 'nonce' );
+
+		if ( ! jharudar_user_can_manage() ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'jharudar-for-woocommerce' ) ) );
+		}
+
+		$product_ids     = isset( $_POST['product_ids'] ) ? array_map( 'absint', (array) $_POST['product_ids'] ) : array();
+		$delete_images   = isset( $_POST['delete_images'] ) && 'true' === $_POST['delete_images'];
+		$action          = isset( $_POST['delete_action'] ) ? sanitize_key( $_POST['delete_action'] ) : 'delete';
+		$setup_redirects = isset( $_POST['setup_redirects'] ) && 'true' === $_POST['setup_redirects'];
+		$redirect_map    = isset( $_POST['redirect_map'] ) ? array_map( 'absint', wp_unslash( (array) $_POST['redirect_map'] ) ) : array();
+
+		if ( empty( $product_ids ) ) {
+			wp_send_json_error( array( 'message' => __( 'No products selected.', 'jharudar-for-woocommerce' ) ) );
+		}
+
+		// Validate action.
+		if ( ! in_array( $action, array( 'delete', 'trash', 'draft' ), true ) ) {
+			$action = 'delete';
+		}
+
+		// Handle draft action — set status to draft instead of deleting.
+		if ( 'draft' === $action ) {
+			$result = $this->set_products_status( $product_ids, 'draft' );
+		} else {
+			$result = $this->delete_products( $product_ids, $action, $delete_images );
+		}
+
+		// Set up 301 redirects if requested.
+		$redirects_created = 0;
+		if ( $setup_redirects && ! empty( $redirect_map ) ) {
+			$redirects_created = $this->create_duplicate_redirects( $redirect_map );
+		}
+
+		$result['redirects_created'] = $redirects_created;
+		$result['action']            = $action;
+
+		wp_send_json_success( $result );
+	}
+
+	/**
+	 * AJAX handler: Export duplicate products.
+	 *
+	 * @since 0.1.1
+	 * @return void
+	 */
+	public function ajax_export_duplicate_products() {
+		check_ajax_referer( 'jharudar_admin_nonce', 'nonce' );
+
+		if ( ! jharudar_user_can_manage() ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'jharudar-for-woocommerce' ) ) );
+		}
+
+		$product_ids = isset( $_POST['product_ids'] ) ? array_map( 'absint', (array) $_POST['product_ids'] ) : array();
+		$format      = isset( $_POST['format'] ) ? sanitize_key( $_POST['format'] ) : 'csv';
+
+		if ( empty( $product_ids ) ) {
+			wp_send_json_error( array( 'message' => __( 'No products selected.', 'jharudar-for-woocommerce' ) ) );
+		}
+
+		$exporter = new Jharudar_Exporter( $format );
+		$filepath = $exporter->export_products( $product_ids )->save();
+
+		if ( $filepath ) {
+			$upload_dir = wp_upload_dir();
+			$file_url   = str_replace( $upload_dir['basedir'], $upload_dir['baseurl'], $filepath );
+
+			wp_send_json_success(
+				array(
+					'file_url'  => $file_url,
+					'file_path' => $filepath,
+					'message'   => __( 'Export completed successfully.', 'jharudar-for-woocommerce' ),
+				)
+			);
+		} else {
+			wp_send_json_error( array( 'message' => __( 'Export failed.', 'jharudar-for-woocommerce' ) ) );
+		}
+	}
+
+	/**
+	 * Set products to a specific status (draft, pending, etc.).
+	 *
+	 * @since 0.1.1
+	 * @param array  $product_ids Product IDs.
+	 * @param string $status      Target status.
+	 * @return array Result with updated and failed counts.
+	 */
+	public function set_products_status( $product_ids, $status = 'draft' ) {
+		$product_ids = jharudar_sanitize_ids( $product_ids );
+		$updated     = 0;
+		$failed      = 0;
+
+		foreach ( $product_ids as $product_id ) {
+			$product = wc_get_product( $product_id );
+
+			if ( ! $product ) {
+				++$failed;
+				continue;
+			}
+
+			jharudar_log_activity( 'status_change', 'product', $product_id );
+
+			$product->set_status( $status );
+			$product->save();
+
+			++$updated;
+		}
+
+		return array(
+			'deleted' => $updated,
+			'failed'  => $failed,
+		);
+	}
+
+	/**
+	 * Create 301 redirects for deleted duplicate products.
+	 *
+	 * Stores redirects in an option: slug of deleted product → URL of kept product.
+	 *
+	 * @since 0.1.1
+	 * @param array $redirect_map Associative array: deleted product ID → kept product ID.
+	 * @return int Number of redirects created.
+	 */
+	public function create_duplicate_redirects( $redirect_map ) {
+		$redirects = get_option( 'jharudar_duplicate_redirects', array() );
+		$count     = 0;
+
+		foreach ( $redirect_map as $deleted_id => $kept_id ) {
+			$deleted_id = absint( $deleted_id );
+			$kept_id    = absint( $kept_id );
+
+			if ( ! $deleted_id || ! $kept_id ) {
+				continue;
+			}
+
+			// Get the slug before it is potentially deleted.
+			$deleted_product = wc_get_product( $deleted_id );
+			$kept_product    = wc_get_product( $kept_id );
+
+			if ( ! $kept_product ) {
+				continue;
+			}
+
+			$deleted_slug = $deleted_product ? $deleted_product->get_slug() : '';
+
+			// Also try the post object slug if the product is already gone.
+			if ( empty( $deleted_slug ) ) {
+				$post = get_post( $deleted_id );
+				if ( $post ) {
+					$deleted_slug = $post->post_name;
+				}
+			}
+
+			if ( empty( $deleted_slug ) ) {
+				continue;
+			}
+
+			$kept_permalink = $kept_product->get_permalink();
+
+			if ( $kept_permalink ) {
+				$redirects[ $deleted_slug ] = $kept_permalink;
+				++$count;
+			}
+		}
+
+		if ( $count > 0 ) {
+			update_option( 'jharudar_duplicate_redirects', $redirects, false );
+		}
+
+		return $count;
+	}
+
+	/**
+	 * Handle 301 redirects for deleted duplicate products.
+	 *
+	 * Fires on template_redirect. Checks if the current 404 URL matches
+	 * a previously deleted product slug and redirects to the kept product.
+	 *
+	 * @since 0.1.1
+	 * @return void
+	 */
+	public function handle_duplicate_redirects() {
+		if ( ! is_404() ) {
+			return;
+		}
+
+		$redirects = get_option( 'jharudar_duplicate_redirects', array() );
+
+		if ( empty( $redirects ) ) {
+			return;
+		}
+
+		// Get the current request slug from the URL.
+		$request_path = isset( $_SERVER['REQUEST_URI'] ) ? trim( wp_parse_url( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ), PHP_URL_PATH ), '/' ) : '';
+		$slug         = basename( $request_path );
+
+		if ( isset( $redirects[ $slug ] ) ) {
+			wp_safe_redirect( $redirects[ $slug ], 301 );
+			exit;
+		}
+	}
+
+	/**
+	 * Count trashed products.
+	 *
+	 * @since 0.2.0
+	 * @return int Trashed product count.
+	 */
+	public static function count_trashed() {
+		$counts = wp_count_posts( 'product' );
+
+		return isset( $counts->trash ) ? (int) $counts->trash : 0;
+	}
+
+	/**
+	 * Permanently delete all trashed products.
+	 *
+	 * @since 0.2.0
+	 * @return array Result data.
+	 */
+	public function empty_trash() {
+		$args = array(
+			'post_type'      => 'product',
+			'post_status'    => 'trash',
+			'posts_per_page' => -1,
+			'fields'         => 'ids',
+		);
+
+		$query   = new WP_Query( $args );
+		$deleted = 0;
+		$failed  = 0;
+
+		foreach ( $query->posts as $product_id ) {
+			$product = wc_get_product( $product_id );
+
+			if ( ! $product ) {
+				wp_delete_post( $product_id, true );
+				++$deleted;
+				continue;
+			}
+
+			jharudar_log_activity( 'delete', 'product', $product_id );
+			$product->delete( true );
+			++$deleted;
+		}
+
+		return array(
+			'deleted' => $deleted,
+			'failed'  => $failed,
+		);
+	}
+
+	/**
+	 * AJAX handler: Empty trash for products.
+	 *
+	 * @since 0.2.0
+	 * @return void
+	 */
+	public function ajax_empty_trash() {
+		check_ajax_referer( 'jharudar_admin_nonce', 'nonce' );
+
+		if ( ! jharudar_user_can_manage() ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'jharudar-for-woocommerce' ) ) );
+		}
+
+		$result = $this->empty_trash();
+		wp_send_json_success( $result );
+	}
+
+	/**
+	 * Check product dependencies (subscriptions, bookings, memberships).
+	 *
+	 * Returns warnings for products whose types indicate related active data
+	 * (e.g. subscription products with active subscriptions).
+	 *
+	 * @since 0.1.0
+	 * @param array $product_ids Product IDs to check.
+	 * @return array Array of warning strings.
+	 */
+	public function get_related_data_warnings( $product_ids ) {
+		$product_ids        = jharudar_sanitize_ids( $product_ids );
+		$warnings           = array();
+		$subscription_count = 0;
+		$booking_count      = 0;
+		$membership_count   = 0;
+
+		foreach ( $product_ids as $product_id ) {
+			$product = wc_get_product( $product_id );
+			if ( ! $product ) {
+				continue;
+			}
+
+			$type = $product->get_type();
+
+			// Check subscription products.
+			if ( in_array( $type, array( 'subscription', 'variable-subscription' ), true )
+				&& function_exists( 'wcs_get_subscriptions' ) ) {
+				$subs                = wcs_get_subscriptions(
+					array(
+						'product_id'             => $product_id,
+						'subscription_status'    => array( 'active', 'on-hold', 'pending' ),
+						'subscriptions_per_page' => -1,
+					)
+				);
+				$subscription_count += count( $subs );
+			}
+
+			// Check booking products.
+			if ( 'booking' === $type && class_exists( 'WC_Bookings' ) ) {
+				global $wpdb;
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$bk_count       = (int) $wpdb->get_var(
+					$wpdb->prepare(
+						"SELECT COUNT(*) FROM {$wpdb->postmeta} pm
+						INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+						WHERE p.post_type = 'wc_booking'
+						AND p.post_status NOT IN ('trash', 'cancelled', 'complete')
+						AND pm.meta_key = '_booking_product_id'
+						AND pm.meta_value = %d",
+						$product_id
+					)
+				);
+				$booking_count += $bk_count;
+			}
+		}
+
+		// Check memberships by plan (plans are products in WooCommerce Memberships).
+		if ( function_exists( 'wc_memberships_get_membership_plans' ) ) {
+			$plans = wc_memberships_get_membership_plans();
+			foreach ( $plans as $plan ) {
+				$plan_product_ids = $plan->get_product_ids();
+				if ( ! empty( array_intersect( $product_ids, $plan_product_ids ) ) ) {
+					// Count active memberships for this plan.
+					$mem_args = array(
+						'post_type'      => 'wc_user_membership',
+						'post_parent'    => $plan->get_id(),
+						'post_status'    => array( 'wcm-active', 'wcm-complimentary', 'wcm-pending' ),
+						'posts_per_page' => -1,
+						'fields'         => 'ids',
+					);
+
+					$mem_query         = new WP_Query( $mem_args );
+					$membership_count += $mem_query->found_posts;
+				}
+			}
+		}
+
+		if ( $subscription_count > 0 ) {
+			$warnings[] = sprintf(
+				/* translators: %d: number of active subscriptions. */
+				_n(
+					'%d active subscription will be orphaned.',
+					'%d active subscriptions will be orphaned.',
+					$subscription_count,
+					'jharudar-for-woocommerce'
+				),
+				$subscription_count
+			);
+		}
+
+		if ( $booking_count > 0 ) {
+			$warnings[] = sprintf(
+				/* translators: %d: number of active bookings. */
+				_n(
+					'%d active/upcoming booking will be orphaned.',
+					'%d active/upcoming bookings will be orphaned.',
+					$booking_count,
+					'jharudar-for-woocommerce'
+				),
+				$booking_count
+			);
+		}
+
+		if ( $membership_count > 0 ) {
+			$warnings[] = sprintf(
+				/* translators: %d: number of active memberships. */
+				_n(
+					'%d active membership will be orphaned.',
+					'%d active memberships will be orphaned.',
+					$membership_count,
+					'jharudar-for-woocommerce'
+				),
+				$membership_count
+			);
+		}
+
+		return $warnings;
+	}
+
+	/**
+	 * AJAX handler: Check product dependencies before deletion.
+	 *
+	 * @since 0.1.0
+	 * @return void
+	 */
+	public function ajax_check_product_dependencies() {
+		check_ajax_referer( 'jharudar_admin_nonce', 'nonce' );
+
+		if ( ! jharudar_user_can_manage() ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'jharudar-for-woocommerce' ) ) );
+		}
+
+		$product_ids = isset( $_POST['product_ids'] ) ? array_map( 'absint', (array) $_POST['product_ids'] ) : array();
+
+		if ( empty( $product_ids ) ) {
+			wp_send_json_success( array( 'warnings' => array() ) );
+			return;
+		}
+
+		$warnings = $this->get_related_data_warnings( $product_ids );
+		wp_send_json_success( array( 'warnings' => $warnings ) );
 	}
 }

@@ -22,15 +22,15 @@ $jharudar_taxonomy_stats = Jharudar_Taxonomy::get_statistics();
 	<!-- Sub-tabs -->
 	<div class="jharudar-subtabs">
 		<a href="<?php echo esc_url( jharudar_admin_url( 'taxonomy', array( 'subtab' => 'categories' ) ) ); ?>" 
-		   class="jharudar-subtab <?php echo 'categories' === $jharudar_current_subtab ? 'active' : ''; ?>">
+			class="jharudar-subtab <?php echo 'categories' === $jharudar_current_subtab ? 'active' : ''; ?>">
 			<?php esc_html_e( 'Categories', 'jharudar-for-woocommerce' ); ?>
 		</a>
 		<a href="<?php echo esc_url( jharudar_admin_url( 'taxonomy', array( 'subtab' => 'tags' ) ) ); ?>" 
-		   class="jharudar-subtab <?php echo 'tags' === $jharudar_current_subtab ? 'active' : ''; ?>">
+			class="jharudar-subtab <?php echo 'tags' === $jharudar_current_subtab ? 'active' : ''; ?>">
 			<?php esc_html_e( 'Tags', 'jharudar-for-woocommerce' ); ?>
 		</a>
 		<a href="<?php echo esc_url( jharudar_admin_url( 'taxonomy', array( 'subtab' => 'attributes' ) ) ); ?>" 
-		   class="jharudar-subtab <?php echo 'attributes' === $jharudar_current_subtab ? 'active' : ''; ?>">
+			class="jharudar-subtab <?php echo 'attributes' === $jharudar_current_subtab ? 'active' : ''; ?>">
 			<?php esc_html_e( 'Attributes', 'jharudar-for-woocommerce' ); ?>
 		</a>
 	</div>
@@ -304,22 +304,25 @@ $jharudar_taxonomy_stats = Jharudar_Taxonomy::get_statistics();
 <!-- Delete Confirmation Modal -->
 <div class="jharudar-modal-overlay" id="jharudar-taxonomy-delete-modal">
 	<div class="jharudar-modal">
-		<h3><?php esc_html_e( 'Confirm Deletion', 'jharudar-for-woocommerce' ); ?></h3>
-		<p><?php esc_html_e( 'You are about to permanently delete the selected items. This action cannot be undone.', 'jharudar-for-woocommerce' ); ?></p>
-		<p class="jharudar-delete-summary"></p>
-		
-		<div class="notice notice-warning inline">
-			<p><?php esc_html_e( 'Note: The default "Uncategorized" category cannot be deleted.', 'jharudar-for-woocommerce' ); ?></p>
+		<div class="jharudar-modal-header">
+			<h3><?php esc_html_e( 'Confirm Deletion', 'jharudar-for-woocommerce' ); ?></h3>
 		</div>
+		<div class="jharudar-modal-body">
+			<p><?php esc_html_e( 'You are about to permanently delete the selected items. This action cannot be undone.', 'jharudar-for-woocommerce' ); ?></p>
+			<p class="jharudar-delete-summary"></p>
 
-		<div class="jharudar-modal-input">
-			<label for="jharudar-confirm-taxonomy-delete-input">
-				<?php esc_html_e( 'Type DELETE to confirm:', 'jharudar-for-woocommerce' ); ?>
-			</label>
-			<input type="text" id="jharudar-confirm-taxonomy-delete-input" autocomplete="off" />
+			<div class="notice notice-warning inline">
+				<p><?php esc_html_e( 'Note: The default "Uncategorized" category cannot be deleted.', 'jharudar-for-woocommerce' ); ?></p>
+			</div>
+
+			<div class="jharudar-modal-input">
+				<label for="jharudar-confirm-taxonomy-delete-input">
+					<?php esc_html_e( 'Type DELETE to confirm:', 'jharudar-for-woocommerce' ); ?>
+				</label>
+				<input type="text" id="jharudar-confirm-taxonomy-delete-input" autocomplete="off" />
+			</div>
 		</div>
-
-		<div class="jharudar-modal-actions">
+		<div class="jharudar-modal-footer">
 			<button type="button" class="button" id="jharudar-cancel-taxonomy-delete">
 				<?php esc_html_e( 'Cancel', 'jharudar-for-woocommerce' ); ?>
 			</button>

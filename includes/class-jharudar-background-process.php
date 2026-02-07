@@ -159,7 +159,7 @@ abstract class Jharudar_Background_Process {
 		// Check if more items remain.
 		if ( ! empty( $items ) ) {
 			// Update remaining items.
-			$data['items'] = $items;
+			$data['items']     = $items;
 			$data['processed'] = isset( $data['processed'] ) ? $data['processed'] + count( $batch ) : count( $batch );
 			set_transient( $batch_id, $data, DAY_IN_SECONDS );
 

@@ -28,15 +28,15 @@ $jharudar_tax_classes      = $jharudar_tax_rates_module->get_tax_classes();
 	<!-- Sub-tabs -->
 	<div class="jharudar-subtabs">
 		<a href="<?php echo esc_url( jharudar_admin_url( 'store', array( 'subtab' => 'tax-rates' ) ) ); ?>" 
-		   class="jharudar-subtab <?php echo 'tax-rates' === $jharudar_current_subtab ? 'active' : ''; ?>">
+			class="jharudar-subtab <?php echo 'tax-rates' === $jharudar_current_subtab ? 'active' : ''; ?>">
 			<?php esc_html_e( 'Tax Rates', 'jharudar-for-woocommerce' ); ?>
 		</a>
 		<a href="<?php echo esc_url( jharudar_admin_url( 'store', array( 'subtab' => 'shipping-zones' ) ) ); ?>" 
-		   class="jharudar-subtab <?php echo 'shipping-zones' === $jharudar_current_subtab ? 'active' : ''; ?>">
+			class="jharudar-subtab <?php echo 'shipping-zones' === $jharudar_current_subtab ? 'active' : ''; ?>">
 			<?php esc_html_e( 'Shipping Zones', 'jharudar-for-woocommerce' ); ?>
 		</a>
 		<a href="<?php echo esc_url( jharudar_admin_url( 'store', array( 'subtab' => 'shipping-classes' ) ) ); ?>" 
-		   class="jharudar-subtab <?php echo 'shipping-classes' === $jharudar_current_subtab ? 'active' : ''; ?>">
+			class="jharudar-subtab <?php echo 'shipping-classes' === $jharudar_current_subtab ? 'active' : ''; ?>">
 			<?php esc_html_e( 'Shipping Classes', 'jharudar-for-woocommerce' ); ?>
 		</a>
 	</div>
@@ -332,25 +332,28 @@ $jharudar_tax_classes      = $jharudar_tax_rates_module->get_tax_classes();
 <!-- Delete Confirmation Modal -->
 <div class="jharudar-modal-overlay" id="jharudar-store-delete-modal">
 	<div class="jharudar-modal">
-		<h3><?php esc_html_e( 'Confirm Deletion', 'jharudar-for-woocommerce' ); ?></h3>
-		<p><?php esc_html_e( 'You are about to permanently delete the selected items. This action cannot be undone.', 'jharudar-for-woocommerce' ); ?></p>
-		<p class="jharudar-delete-summary"></p>
-		
-		<div class="jharudar-modal-options">
-			<label class="jharudar-checkbox-label">
-				<input type="checkbox" id="jharudar-confirm-store-backup" />
-				<?php esc_html_e( 'I have exported a backup of these items', 'jharudar-for-woocommerce' ); ?>
-			</label>
+		<div class="jharudar-modal-header">
+			<h3><?php esc_html_e( 'Confirm Deletion', 'jharudar-for-woocommerce' ); ?></h3>
 		</div>
+		<div class="jharudar-modal-body">
+			<p><?php esc_html_e( 'You are about to permanently delete the selected items. This action cannot be undone.', 'jharudar-for-woocommerce' ); ?></p>
+			<p class="jharudar-delete-summary"></p>
 
-		<div class="jharudar-modal-input">
-			<label for="jharudar-confirm-store-delete-input">
-				<?php esc_html_e( 'Type DELETE to confirm:', 'jharudar-for-woocommerce' ); ?>
-			</label>
-			<input type="text" id="jharudar-confirm-store-delete-input" autocomplete="off" />
+			<div class="jharudar-modal-options">
+				<label class="jharudar-checkbox-label">
+					<input type="checkbox" id="jharudar-confirm-store-backup" />
+					<?php esc_html_e( 'I have exported a backup of these items', 'jharudar-for-woocommerce' ); ?>
+				</label>
+			</div>
+
+			<div class="jharudar-modal-input">
+				<label for="jharudar-confirm-store-delete-input">
+					<?php esc_html_e( 'Type DELETE to confirm:', 'jharudar-for-woocommerce' ); ?>
+				</label>
+				<input type="text" id="jharudar-confirm-store-delete-input" autocomplete="off" />
+			</div>
 		</div>
-
-		<div class="jharudar-modal-actions">
+		<div class="jharudar-modal-footer">
 			<button type="button" class="button" id="jharudar-cancel-store-delete">
 				<?php esc_html_e( 'Cancel', 'jharudar-for-woocommerce' ); ?>
 			</button>

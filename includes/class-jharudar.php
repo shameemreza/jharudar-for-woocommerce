@@ -98,6 +98,41 @@ final class Jharudar {
 	public $database = null;
 
 	/**
+	 * Subscriptions module instance.
+	 *
+	 * @var Jharudar_Subscriptions|null
+	 */
+	public $subscriptions = null;
+
+	/**
+	 * Memberships module instance.
+	 *
+	 * @var Jharudar_Memberships|null
+	 */
+	public $memberships = null;
+
+	/**
+	 * Bookings module instance.
+	 *
+	 * @var Jharudar_Bookings|null
+	 */
+	public $bookings = null;
+
+	/**
+	 * Appointments module instance.
+	 *
+	 * @var Jharudar_Appointments|null
+	 */
+	public $appointments = null;
+
+	/**
+	 * Vendors module instance.
+	 *
+	 * @var Jharudar_Vendors|null
+	 */
+	public $vendors = null;
+
+	/**
 	 * Get the single instance of the class.
 	 *
 	 * @since 0.0.1
@@ -194,6 +229,13 @@ final class Jharudar {
 		// Database module.
 		$this->database = new Jharudar_Database();
 
+		// Extension modules (conditionally loaded).
+		$this->subscriptions = new Jharudar_Subscriptions();
+		$this->memberships   = new Jharudar_Memberships();
+		$this->bookings      = new Jharudar_Bookings();
+		$this->appointments  = new Jharudar_Appointments();
+		$this->vendors       = new Jharudar_Vendors();
+
 		// Cache helper (registers AJAX handler and auto-clear hooks).
 		Jharudar_Cache::init();
 
@@ -263,18 +305,18 @@ final class Jharudar {
 	 * Get plugin settings.
 	 *
 	 * @since 0.0.1
-	 * @param string $key     Optional. Setting key to retrieve.
-	 * @param mixed  $default Optional. Default value if setting not found.
+	 * @param string $key           Optional. Setting key to retrieve.
+	 * @param mixed  $default_value Optional. Default value if setting not found.
 	 * @return mixed Setting value or all settings.
 	 */
-	public function get_setting( $key = '', $default = null ) {
+	public function get_setting( $key = '', $default_value = null ) {
 		$settings = get_option( 'jharudar_settings', array() );
 
 		if ( '' === $key ) {
 			return $settings;
 		}
 
-		return isset( $settings[ $key ] ) ? $settings[ $key ] : $default;
+		return isset( $settings[ $key ] ) ? $settings[ $key ] : $default_value;
 	}
 
 	/**

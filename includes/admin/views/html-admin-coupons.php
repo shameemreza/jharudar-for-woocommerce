@@ -86,16 +86,35 @@ $jharudar_coupon_stats = Jharudar_Coupons::get_statistics();
 					<span class="count">0</span> <?php esc_html_e( 'selected', 'jharudar-for-woocommerce' ); ?>
 				</span>
 			</div>
-			<div class="jharudar-actions-right">
-				<button type="button" class="button" id="jharudar-export-coupons" disabled>
-					<span class="dashicons dashicons-download"></span>
-					<?php esc_html_e( 'Export Selected', 'jharudar-for-woocommerce' ); ?>
-				</button>
-				<button type="button" class="button button-primary" id="jharudar-delete-coupons" disabled>
+		<div class="jharudar-actions-right">
+			<select id="jharudar-coupon-delete-action" class="jharudar-select" style="width: auto; min-width: 140px;">
+				<option value="trash"><?php esc_html_e( 'Move to Trash', 'jharudar-for-woocommerce' ); ?></option>
+				<option value="delete"><?php esc_html_e( 'Delete Permanently', 'jharudar-for-woocommerce' ); ?></option>
+			</select>
+			<button type="button" class="button" id="jharudar-export-coupons" disabled>
+				<span class="dashicons dashicons-download"></span>
+				<?php esc_html_e( 'Export Selected', 'jharudar-for-woocommerce' ); ?>
+			</button>
+			<button type="button" class="button button-primary" id="jharudar-delete-coupons" disabled>
+				<span class="dashicons dashicons-trash"></span>
+				<?php esc_html_e( 'Process Selected', 'jharudar-for-woocommerce' ); ?>
+			</button>
+			<?php
+			$jharudar_coupon_trash_count = Jharudar_Coupons::count_trashed();
+			if ( $jharudar_coupon_trash_count > 0 ) :
+				?>
+				<button type="button" class="button jharudar-empty-trash-btn" data-module="coupons" data-count="<?php echo esc_attr( $jharudar_coupon_trash_count ); ?>">
 					<span class="dashicons dashicons-trash"></span>
-					<?php esc_html_e( 'Delete Selected', 'jharudar-for-woocommerce' ); ?>
+					<?php
+					printf(
+						/* translators: %s: number of trashed items. */
+						esc_html__( 'Empty Trash (%s)', 'jharudar-for-woocommerce' ),
+						esc_html( number_format_i18n( $jharudar_coupon_trash_count ) )
+					);
+					?>
 				</button>
-			</div>
+			<?php endif; ?>
+		</div>
 		</div>
 
 		<!-- Progress Bar -->
@@ -130,30 +149,33 @@ $jharudar_coupon_stats = Jharudar_Coupons::get_statistics();
 <!-- Delete Confirmation Modal -->
 <div class="jharudar-modal-overlay" id="jharudar-coupon-delete-modal">
 	<div class="jharudar-modal">
-		<h3><?php esc_html_e( 'Confirm Deletion', 'jharudar-for-woocommerce' ); ?></h3>
-		<p><?php esc_html_e( 'You are about to permanently delete the selected coupons. This action cannot be undone.', 'jharudar-for-woocommerce' ); ?></p>
-		<p class="jharudar-delete-summary"></p>
-		
-		<div class="jharudar-modal-options">
-			<label class="jharudar-checkbox-label">
-				<input type="checkbox" id="jharudar-confirm-coupon-backup" />
-				<?php esc_html_e( 'I have exported a backup of these coupons', 'jharudar-for-woocommerce' ); ?>
-			</label>
+		<div class="jharudar-modal-header">
+			<h3 id="jharudar-coupon-modal-title"><?php esc_html_e( 'Confirm Deletion', 'jharudar-for-woocommerce' ); ?></h3>
 		</div>
+		<div class="jharudar-modal-body">
+			<p id="jharudar-coupon-modal-description"><?php esc_html_e( 'You are about to permanently delete the selected coupons. This action cannot be undone.', 'jharudar-for-woocommerce' ); ?></p>
+			<p class="jharudar-delete-summary"></p>
 
-		<div class="jharudar-modal-input">
-			<label for="jharudar-confirm-coupon-delete-input">
-				<?php esc_html_e( 'Type DELETE to confirm:', 'jharudar-for-woocommerce' ); ?>
-			</label>
-			<input type="text" id="jharudar-confirm-coupon-delete-input" autocomplete="off" />
+			<div class="jharudar-modal-options">
+				<label class="jharudar-checkbox-label">
+					<input type="checkbox" id="jharudar-confirm-coupon-backup" />
+					<?php esc_html_e( 'I have exported a backup of these coupons', 'jharudar-for-woocommerce' ); ?>
+				</label>
+			</div>
+
+			<div class="jharudar-modal-input" id="jharudar-coupon-confirm-input-wrapper">
+				<label for="jharudar-confirm-coupon-delete-input">
+					<?php esc_html_e( 'Type DELETE to confirm:', 'jharudar-for-woocommerce' ); ?>
+				</label>
+				<input type="text" id="jharudar-confirm-coupon-delete-input" autocomplete="off" />
+			</div>
 		</div>
-
-		<div class="jharudar-modal-actions">
+		<div class="jharudar-modal-footer">
 			<button type="button" class="button" id="jharudar-cancel-coupon-delete">
 				<?php esc_html_e( 'Cancel', 'jharudar-for-woocommerce' ); ?>
 			</button>
 			<button type="button" class="button button-primary button-danger" id="jharudar-confirm-coupon-delete" disabled>
-				<?php esc_html_e( 'Delete Permanently', 'jharudar-for-woocommerce' ); ?>
+				<?php esc_html_e( 'Confirm', 'jharudar-for-woocommerce' ); ?>
 			</button>
 		</div>
 	</div>

@@ -51,12 +51,12 @@ class Jharudar_Customers {
 	 */
 	public function get_customers( $filters = array() ) {
 		$defaults = array(
-			'filter_type'    => '',        // zero_orders, inactive, by_date.
+			'filter_type'     => '',        // zero_orders, inactive, by_date.
 			'inactive_months' => 12,       // For inactive filter.
-			'date_before'    => '',        // Registration date before.
-			'role'           => 'customer',
-			'limit'          => 50,
-			'offset'         => 0,
+			'date_before'     => '',        // Registration date before.
+			'role'            => 'customer',
+			'limit'           => 50,
+			'offset'          => 0,
 		);
 
 		$filters = wp_parse_args( $filters, $defaults );
@@ -77,8 +77,8 @@ class Jharudar_Customers {
 			);
 		}
 
-		$users      = get_users( $args );
-		$customers  = array();
+		$users     = get_users( $args );
+		$customers = array();
 
 		foreach ( $users as $user ) {
 			// Skip admins and shop managers.

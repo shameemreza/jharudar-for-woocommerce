@@ -113,20 +113,39 @@ $jharudar_order_stats     = Jharudar_Orders::get_statistics();
 					<span class="count">0</span> <?php esc_html_e( 'selected', 'jharudar-for-woocommerce' ); ?>
 				</span>
 			</div>
-			<div class="jharudar-actions-right">
-				<button type="button" class="button" id="jharudar-export-orders" disabled>
-					<span class="dashicons dashicons-download"></span>
-					<?php esc_html_e( 'Export Selected', 'jharudar-for-woocommerce' ); ?>
-				</button>
-				<button type="button" class="button" id="jharudar-anonymize-orders" disabled>
-					<span class="dashicons dashicons-hidden"></span>
-					<?php esc_html_e( 'Anonymize Selected', 'jharudar-for-woocommerce' ); ?>
-				</button>
-				<button type="button" class="button button-primary" id="jharudar-delete-orders" disabled>
+		<div class="jharudar-actions-right">
+			<select id="jharudar-order-delete-action" class="jharudar-select" style="width: auto; min-width: 140px;">
+				<option value="trash"><?php esc_html_e( 'Move to Trash', 'jharudar-for-woocommerce' ); ?></option>
+				<option value="delete"><?php esc_html_e( 'Delete Permanently', 'jharudar-for-woocommerce' ); ?></option>
+			</select>
+			<button type="button" class="button" id="jharudar-export-orders" disabled>
+				<span class="dashicons dashicons-download"></span>
+				<?php esc_html_e( 'Export Selected', 'jharudar-for-woocommerce' ); ?>
+			</button>
+			<button type="button" class="button" id="jharudar-anonymize-orders" disabled>
+				<span class="dashicons dashicons-hidden"></span>
+				<?php esc_html_e( 'Anonymize Selected', 'jharudar-for-woocommerce' ); ?>
+			</button>
+			<button type="button" class="button button-primary" id="jharudar-delete-orders" disabled>
+				<span class="dashicons dashicons-trash"></span>
+				<?php esc_html_e( 'Process Selected', 'jharudar-for-woocommerce' ); ?>
+			</button>
+			<?php
+			$jharudar_order_trash_count = Jharudar_Orders::count_trashed();
+			if ( $jharudar_order_trash_count > 0 ) :
+				?>
+				<button type="button" class="button jharudar-empty-trash-btn" data-module="orders" data-count="<?php echo esc_attr( $jharudar_order_trash_count ); ?>">
 					<span class="dashicons dashicons-trash"></span>
-					<?php esc_html_e( 'Delete Selected', 'jharudar-for-woocommerce' ); ?>
+					<?php
+					printf(
+						/* translators: %s: number of trashed items. */
+						esc_html__( 'Empty Trash (%s)', 'jharudar-for-woocommerce' ),
+						esc_html( number_format_i18n( $jharudar_order_trash_count ) )
+					);
+					?>
 				</button>
-			</div>
+			<?php endif; ?>
+		</div>
 		</div>
 
 		<!-- Progress Bar -->
@@ -162,30 +181,33 @@ $jharudar_order_stats     = Jharudar_Orders::get_statistics();
 <!-- Delete Confirmation Modal -->
 <div class="jharudar-modal-overlay" id="jharudar-order-delete-modal">
 	<div class="jharudar-modal">
-		<h3><?php esc_html_e( 'Confirm Order Deletion', 'jharudar-for-woocommerce' ); ?></h3>
-		<p><?php esc_html_e( 'You are about to permanently delete the selected orders. This action cannot be undone. All order data, items, and notes will be removed.', 'jharudar-for-woocommerce' ); ?></p>
-		<p class="jharudar-delete-summary"></p>
-		
-		<div class="jharudar-modal-options">
-			<label class="jharudar-checkbox-label">
-				<input type="checkbox" id="jharudar-confirm-order-backup" />
-				<?php esc_html_e( 'I have exported a backup of these orders', 'jharudar-for-woocommerce' ); ?>
-			</label>
+		<div class="jharudar-modal-header">
+			<h3 id="jharudar-order-modal-title"><?php esc_html_e( 'Confirm Order Deletion', 'jharudar-for-woocommerce' ); ?></h3>
 		</div>
+		<div class="jharudar-modal-body">
+			<p id="jharudar-order-modal-description"><?php esc_html_e( 'You are about to permanently delete the selected orders. This action cannot be undone. All order data, items, and notes will be removed.', 'jharudar-for-woocommerce' ); ?></p>
+			<p class="jharudar-delete-summary"></p>
 
-		<div class="jharudar-modal-input">
-			<label for="jharudar-confirm-order-delete-input">
-				<?php esc_html_e( 'Type DELETE to confirm:', 'jharudar-for-woocommerce' ); ?>
-			</label>
-			<input type="text" id="jharudar-confirm-order-delete-input" autocomplete="off" />
+			<div class="jharudar-modal-options">
+				<label class="jharudar-checkbox-label">
+					<input type="checkbox" id="jharudar-confirm-order-backup" />
+					<?php esc_html_e( 'I have exported a backup of these orders', 'jharudar-for-woocommerce' ); ?>
+				</label>
+			</div>
+
+			<div class="jharudar-modal-input" id="jharudar-order-confirm-input-wrapper">
+				<label for="jharudar-confirm-order-delete-input">
+					<?php esc_html_e( 'Type DELETE to confirm:', 'jharudar-for-woocommerce' ); ?>
+				</label>
+				<input type="text" id="jharudar-confirm-order-delete-input" autocomplete="off" />
+			</div>
 		</div>
-
-		<div class="jharudar-modal-actions">
+		<div class="jharudar-modal-footer">
 			<button type="button" class="button" id="jharudar-cancel-order-delete">
 				<?php esc_html_e( 'Cancel', 'jharudar-for-woocommerce' ); ?>
 			</button>
 			<button type="button" class="button button-primary button-danger" id="jharudar-confirm-order-delete" disabled>
-				<?php esc_html_e( 'Delete Permanently', 'jharudar-for-woocommerce' ); ?>
+				<?php esc_html_e( 'Confirm', 'jharudar-for-woocommerce' ); ?>
 			</button>
 		</div>
 	</div>
@@ -194,18 +216,21 @@ $jharudar_order_stats     = Jharudar_Orders::get_statistics();
 <!-- Anonymize Confirmation Modal -->
 <div class="jharudar-modal-overlay" id="jharudar-order-anonymize-modal">
 	<div class="jharudar-modal">
-		<h3><?php esc_html_e( 'Confirm Order Anonymization', 'jharudar-for-woocommerce' ); ?></h3>
-		<p><?php esc_html_e( 'You are about to anonymize personal data in the selected orders. Customer names, addresses, emails, phone numbers, and IP addresses will be removed. Order totals and items will be preserved.', 'jharudar-for-woocommerce' ); ?></p>
-		<p class="jharudar-anonymize-summary"></p>
-
-		<div class="jharudar-modal-input">
-			<label for="jharudar-confirm-anonymize-input">
-				<?php esc_html_e( 'Type ANONYMIZE to confirm:', 'jharudar-for-woocommerce' ); ?>
-			</label>
-			<input type="text" id="jharudar-confirm-anonymize-input" autocomplete="off" />
+		<div class="jharudar-modal-header">
+			<h3><?php esc_html_e( 'Confirm Order Anonymization', 'jharudar-for-woocommerce' ); ?></h3>
 		</div>
+		<div class="jharudar-modal-body">
+			<p><?php esc_html_e( 'You are about to anonymize personal data in the selected orders. Customer names, addresses, emails, phone numbers, and IP addresses will be removed. Order totals and items will be preserved.', 'jharudar-for-woocommerce' ); ?></p>
+			<p class="jharudar-anonymize-summary"></p>
 
-		<div class="jharudar-modal-actions">
+			<div class="jharudar-modal-input">
+				<label for="jharudar-confirm-anonymize-input">
+					<?php esc_html_e( 'Type ANONYMIZE to confirm:', 'jharudar-for-woocommerce' ); ?>
+				</label>
+				<input type="text" id="jharudar-confirm-anonymize-input" autocomplete="off" />
+			</div>
+		</div>
+		<div class="jharudar-modal-footer">
 			<button type="button" class="button" id="jharudar-cancel-anonymize">
 				<?php esc_html_e( 'Cancel', 'jharudar-for-woocommerce' ); ?>
 			</button>

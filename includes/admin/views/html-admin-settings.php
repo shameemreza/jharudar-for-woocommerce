@@ -32,17 +32,17 @@ function jharudar_render_settings_page() {
 
 		// Sanitize and save settings.
 		$jharudar_settings = array(
-			'delete_data_on_uninstall'    => isset( $_POST['delete_data_on_uninstall'] ),
-			'enable_activity_log'         => isset( $_POST['enable_activity_log'] ),
-			'log_retention_days'          => absint( $_POST['log_retention_days'] ?? 30 ),
-			'batch_size'                  => absint( $_POST['batch_size'] ?? 50 ),
-			'require_confirmation'        => isset( $_POST['require_confirmation'] ),
-			'require_export'              => isset( $_POST['require_export'] ),
-			'email_notifications'         => isset( $_POST['email_notifications'] ),
-			'notification_email'          => isset( $_POST['notification_email'] ) ? sanitize_email( wp_unslash( $_POST['notification_email'] ) ) : '',
-			'auto_delete_zero_stock'      => isset( $_POST['auto_delete_zero_stock'] ),
-			'auto_delete_product_images'  => isset( $_POST['auto_delete_product_images'] ),
-			'skip_shared_images'          => isset( $_POST['skip_shared_images'] ),
+			'delete_data_on_uninstall'   => isset( $_POST['delete_data_on_uninstall'] ),
+			'enable_activity_log'        => isset( $_POST['enable_activity_log'] ),
+			'log_retention_days'         => absint( $_POST['log_retention_days'] ?? 30 ),
+			'batch_size'                 => absint( $_POST['batch_size'] ?? 50 ),
+			'require_confirmation'       => isset( $_POST['require_confirmation'] ),
+			'require_export'             => isset( $_POST['require_export'] ),
+			'email_notifications'        => isset( $_POST['email_notifications'] ),
+			'notification_email'         => isset( $_POST['notification_email'] ) ? sanitize_email( wp_unslash( $_POST['notification_email'] ) ) : '',
+			'auto_delete_zero_stock'     => isset( $_POST['auto_delete_zero_stock'] ),
+			'auto_delete_product_images' => isset( $_POST['auto_delete_product_images'] ),
+			'skip_shared_images'         => isset( $_POST['skip_shared_images'] ),
 		);
 
 		// Validate batch size.

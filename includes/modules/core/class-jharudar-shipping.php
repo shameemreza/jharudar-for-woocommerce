@@ -65,12 +65,12 @@ class Jharudar_Shipping {
 		// Add "Rest of the World" zone.
 		$zones_array   = array_values( $zones );
 		$zones_array[] = array(
-			'id'                  => 0,
-			'zone_id'             => 0,
-			'zone_name'           => $rest_world->get_zone_name(),
-			'zone_order'          => $rest_world->get_zone_order(),
-			'zone_locations'      => $rest_world->get_zone_locations(),
-			'shipping_methods'    => $rest_world->get_shipping_methods(),
+			'id'                      => 0,
+			'zone_id'                 => 0,
+			'zone_name'               => $rest_world->get_zone_name(),
+			'zone_order'              => $rest_world->get_zone_order(),
+			'zone_locations'          => $rest_world->get_zone_locations(),
+			'shipping_methods'        => $rest_world->get_shipping_methods(),
 			'formatted_zone_location' => $rest_world->get_formatted_location(),
 		);
 
@@ -163,12 +163,12 @@ class Jharudar_Shipping {
 		}
 
 		return array(
-			'id'           => $zone_data['zone_id'],
-			'name'         => $zone_data['zone_name'],
-			'regions'      => $zone->get_formatted_location(),
-			'methods'      => implode( ', ', $method_names ) ?: __( 'No methods', 'jharudar-for-woocommerce' ),
+			'id'            => $zone_data['zone_id'],
+			'name'          => $zone_data['zone_name'],
+			'regions'       => $zone->get_formatted_location(),
+			'methods'       => ! empty( $method_names ) ? implode( ', ', $method_names ) : __( 'No methods', 'jharudar-for-woocommerce' ),
 			'methods_count' => count( $methods ),
-			'edit_url'     => admin_url( 'admin.php?page=wc-settings&tab=shipping&zone_id=' . $zone_data['zone_id'] ),
+			'edit_url'      => admin_url( 'admin.php?page=wc-settings&tab=shipping&zone_id=' . $zone_data['zone_id'] ),
 		);
 	}
 
@@ -328,16 +328,16 @@ class Jharudar_Shipping {
 	 * Format shipping class data for display.
 	 *
 	 * @since 0.0.1
-	 * @param WP_Term $class Shipping class term.
+	 * @param WP_Term $shipping_class Shipping class term.
 	 * @return array Formatted class data.
 	 */
-	private function format_shipping_class_data( $class ) {
+	private function format_shipping_class_data( $shipping_class ) {
 		return array(
-			'id'          => $class->term_id,
-			'name'        => $class->name,
-			'slug'        => $class->slug,
-			'description' => $class->description,
-			'count'       => $class->count,
+			'id'          => $shipping_class->term_id,
+			'name'        => $shipping_class->name,
+			'slug'        => $shipping_class->slug,
+			'description' => $shipping_class->description,
+			'count'       => $shipping_class->count,
 			'edit_url'    => admin_url( 'admin.php?page=wc-settings&tab=shipping&section=classes' ),
 		);
 	}

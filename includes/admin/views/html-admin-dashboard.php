@@ -51,10 +51,10 @@ function jharudar_get_database_health_stats() {
 		// phpcs:enable
 
 		$jharudar_stats = array(
-			'transients'  => (int) $jharudar_transients,
-			'orphaned'    => (int) $jharudar_orphaned,
-			'revisions'   => (int) $jharudar_revisions,
-			'autodrafts'  => (int) $jharudar_autodrafts,
+			'transients' => (int) $jharudar_transients,
+			'orphaned'   => (int) $jharudar_orphaned,
+			'revisions'  => (int) $jharudar_revisions,
+			'autodrafts' => (int) $jharudar_autodrafts,
 		);
 
 		// Cache for 5 minutes.
